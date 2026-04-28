@@ -22,7 +22,7 @@ Polls Project Padel Galway for available 8pm slots Mon–Thu for the next 21 day
 
 ## Cron + email notifications
 
-`vercel.json` runs `/api/cron/check` every hour. The handler diffs current availability against the last snapshot in Redis and sends a Resend email listing only **newly opened** slots.
+`vercel.json` runs `/api/cron/check` every 30 minutes. The handler diffs current availability against the last snapshot in Redis and sends a Resend email listing only **newly opened** slots.
 
 Required env vars (see `.env.example`):
 
@@ -31,7 +31,7 @@ Required env vars (see `.env.example`):
 - `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` (or `KV_REST_API_URL` / `KV_REST_API_TOKEN`) — required for state. Without these, every run looks like a "first run" and no email is sent.
 - `CRON_SECRET` — optional, locks down the cron route
 
-The first run after deploy seeds state without sending an email. Subsequent runs only email when slots that weren't free last hour are free now.
+The first run after deploy seeds state without sending an email. Subsequent runs only email when slots that weren't free last check are free now.
 
 ### Provisioning on Vercel
 
