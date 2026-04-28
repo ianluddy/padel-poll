@@ -48,11 +48,17 @@ export type DaySlot = {
   anyAvailable: boolean;
 };
 
+export type FetchError = {
+  date: string;
+  message: string;
+};
+
 export type VenueAvailability = {
   venue: string;
   venueId: number;
   hour: string;
   days: DaySlot[];
+  errors: FetchError[];
 };
 
 async function getSession(venueId: number): Promise<Session> {
@@ -152,16 +158,16 @@ export async function getAvailability(
   venueKey: VenueKey,
   options: { hour?: number; days?: number; durationMinutes?: number } = {},
 ): Promise<VenueAvailability> {
-  const { hour = 20, days = 21, durationMinutes = 60 } = options;
+  const { hour = 20, days: daysAhead = 21, durationMinutes = 60 } = options;
   const venue = VENUES[venueKey];
   const session = await getSession(venue.id);
 
-  const targetDates = nextWeekdays(days);
+  const targetDates = nextWeekdays(daysAhead);
   const slotStart = hour * 60;
   const slotEnd = slotStart + durationMinutes;
   const hourLabel = `${String(hour).padStart(2, "0")}:00`;
 
-  const dayResults = await Promise.all(
+  const settled = await Promise.allSettled(
     targetDates.map(async (date): Promise<DaySlot> => {
       const dateStr = formatDate(date);
       const grid = await fetchGrid(venue.id, dateStr, session);
@@ -180,10 +186,27 @@ export async function getAvailability(
     }),
   );
 
+  const days: DaySlot[] = [];
+  const errors: FetchError[] = [];
+  settled.forEach((res, idx) => {
+    if (res.status === "fulfilled") {
+      days.push(res.value);
+    } else {
+      errors.push({
+        date: formatDate(targetDates[idx]),
+        message:
+          res.reason instanceof Error
+            ? res.reason.message
+            : String(res.reason),
+      });
+    }
+  });
+
   return {
     venue: venue.name,
     venueId: venue.id,
     hour: hourLabel,
-    days: dayResults,
+    days,
+    errors,
   };
 }
