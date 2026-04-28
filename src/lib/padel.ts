@@ -4,7 +4,6 @@ const USER_AGENT =
 
 export const VENUES = {
   galway: { id: 4, name: "Project Padel Galway" },
-  mayo: { id: 5, name: "Project Padel Mayo" },
 } as const;
 
 export type VenueKey = keyof typeof VENUES;

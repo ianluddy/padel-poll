@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { getAvailability, VENUES, type VenueKey } from "@/lib/padel";
+import { loadSnapshot, saveSnapshot, isStateConfigured } from "@/lib/state";
+import { sendOpeningEmail, type SlotOpening } from "@/lib/notify";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+type KeyedOpening = SlotOpening & { key: string };
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -12,26 +16,50 @@ export async function GET(request: Request) {
   }
 
   const venues = Object.keys(VENUES) as VenueKey[];
-  const results = await Promise.all(
-    venues.map(async (venue) => {
-      try {
-        const data = await getAvailability(venue);
-        const free = data.days.filter((d) => d.anyAvailable);
-        return {
-          venue: data.venue,
-          totalDays: data.days.length,
-          availableDays: free.length,
-          available: free.map((d) => `${d.weekday} ${d.date}`),
-        };
-      } catch (err) {
-        return {
-          venue: VENUES[venue].name,
-          error: err instanceof Error ? err.message : String(err),
-        };
-      }
-    }),
-  );
+  const venueData = await Promise.all(venues.map((v) => getAvailability(v)));
 
-  console.log("[padel-poll]", JSON.stringify(results));
-  return NextResponse.json({ checkedAt: new Date().toISOString(), results });
+  const currentOpenings: KeyedOpening[] = [];
+  for (const data of venueData) {
+    for (const day of data.days) {
+      if (!day.anyAvailable) continue;
+      currentOpenings.push({
+        key: `${data.venueId}:${day.date}:${day.hour}`,
+        venue: data.venue,
+        weekday: day.weekday,
+        date: day.date,
+        hour: day.hour,
+        courts: day.courts.filter((c) => c.available).map((c) => c.courtName),
+      });
+    }
+  }
+
+  const previous = await loadSnapshot();
+  const previousSet = new Set(previous?.slots ?? []);
+  const newOpenings = currentOpenings.filter((o) => !previousSet.has(o.key));
+
+  let notification: { sent: boolean; reason?: string; count: number } = {
+    sent: false,
+    count: 0,
+  };
+  if (previous == null) {
+    notification = { sent: false, count: 0, reason: "first run; seeding state" };
+  } else if (newOpenings.length > 0) {
+    const result = await sendOpeningEmail(newOpenings);
+    notification = { ...result, count: newOpenings.length };
+  }
+
+  await saveSnapshot({
+    ts: new Date().toISOString(),
+    slots: currentOpenings.map((o) => o.key),
+  });
+
+  const summary = {
+    checkedAt: new Date().toISOString(),
+    stateConfigured: isStateConfigured(),
+    currentOpenings: currentOpenings.length,
+    newOpenings: newOpenings.length,
+    notification,
+  };
+  console.log("[padel-poll]", JSON.stringify(summary));
+  return NextResponse.json(summary);
 }
