@@ -1,21 +1,12 @@
-import { getAvailability, VENUES, type VenueKey } from "@/lib/padel";
+import { getAvailability } from "@/lib/padel";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-type SearchParams = { venue?: string };
-
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
-  const venueKey: VenueKey =
-    searchParams.venue === "mayo" ? "mayo" : "galway";
-
+export default async function Home() {
   let body: React.ReactNode;
   try {
-    const data = await getAvailability(venueKey);
+    const data = await getAvailability("galway");
     body = (
       <>
         <p className="subtitle">
@@ -76,17 +67,6 @@ export default async function Home({
   return (
     <main>
       <h1>Padel Poll</h1>
-      <nav className="venue-tabs">
-        {(Object.keys(VENUES) as VenueKey[]).map((key) => (
-          <a
-            key={key}
-            href={`/?venue=${key}`}
-            className={key === venueKey ? "active" : ""}
-          >
-            {VENUES[key].name}
-          </a>
-        ))}
-      </nav>
       {body}
     </main>
   );
