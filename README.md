@@ -33,6 +33,8 @@ Required env vars (see `.env.example`):
 
 The first run after deploy seeds state without sending an email. Subsequent runs only email when slots that weren't free last check are free now.
 
+If any per-date fetch fails or the session can't be established, the cron sends a separate failure email and **does not** update the snapshot — so a partial run won't manufacture spurious "new opening" notifications on the next successful run.
+
 ### Provisioning on Vercel
 
 1. **Resend**: sign up, create an API key, add `RESEND_API_KEY` and `EMAIL_TO` to Vercel project env.
