@@ -9,6 +9,8 @@ import {
 import {
   sendOpeningEmail,
   sendFailureEmail,
+  sendOpeningWhatsApp,
+  sendFailureWhatsApp,
   type SlotOpening,
   type CronFailure,
 } from "@/lib/notify";
@@ -65,11 +67,39 @@ export async function GET(request: Request) {
     sent: false,
     count: 0,
   };
+  let openingWhatsApp: { sent: boolean; reason?: string; count: number } = {
+    sent: false,
+    count: 0,
+  };
   let failureNotification: { sent: boolean; reason?: string } = { sent: false };
+  let failureWhatsApp: { sent: boolean; reason?: string } = { sent: false };
+
+  const settle = async <T>(
+    promise: Promise<T>,
+  ): Promise<T | { sent: false; reason: string }> => {
+    try {
+      return await promise;
+    } catch (err) {
+      return {
+        sent: false,
+        reason: err instanceof Error ? err.message : String(err),
+      };
+    }
+  };
 
   if (failures.length > 0) {
-    failureNotification = await sendFailureEmail(failures);
+    const [emailResult, waResult] = await Promise.all([
+      settle(sendFailureEmail(failures)),
+      settle(sendFailureWhatsApp(failures)),
+    ]);
+    failureNotification = emailResult;
+    failureWhatsApp = waResult;
     openingNotification = {
+      sent: false,
+      count: 0,
+      reason: "skipped: partial fetch failure",
+    };
+    openingWhatsApp = {
       sent: false,
       count: 0,
       reason: "skipped: partial fetch failure",
@@ -80,14 +110,16 @@ export async function GET(request: Request) {
     const newOpenings = currentOpenings.filter((o) => !previousSet.has(o.key));
 
     if (previous == null) {
-      openingNotification = {
-        sent: false,
-        count: 0,
-        reason: "first run; seeding state",
-      };
+      const reason = "first run; seeding state";
+      openingNotification = { sent: false, count: 0, reason };
+      openingWhatsApp = { sent: false, count: 0, reason };
     } else if (newOpenings.length > 0) {
-      const result = await sendOpeningEmail(newOpenings);
-      openingNotification = { ...result, count: newOpenings.length };
+      const [emailResult, waResult] = await Promise.all([
+        settle(sendOpeningEmail(newOpenings)),
+        settle(sendOpeningWhatsApp(newOpenings)),
+      ]);
+      openingNotification = { ...emailResult, count: newOpenings.length };
+      openingWhatsApp = { ...waResult, count: newOpenings.length };
     }
 
     await saveSnapshot({
@@ -102,7 +134,9 @@ export async function GET(request: Request) {
     currentOpenings: currentOpenings.length,
     failures,
     openingNotification,
+    openingWhatsApp,
     failureNotification,
+    failureWhatsApp,
   };
   console.log("[padel-poll]", JSON.stringify(summary));
   return NextResponse.json(summary);
