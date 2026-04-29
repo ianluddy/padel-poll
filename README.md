@@ -29,6 +29,7 @@ Required env vars (see `.env.example`):
 - `RESEND_API_KEY` and `EMAIL_TO` — required for email
 - `EMAIL_FROM` — optional; defaults to Resend's test sender (works without domain verification, fine for personal use)
 - `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` (or `KV_REST_API_URL` / `KV_REST_API_TOKEN`) — required for state. Without these, every run looks like a "first run" and no email is sent.
+- `GREEN_API_INSTANCE_ID`, `GREEN_API_TOKEN`, `GREEN_API_CHAT_ID` — optional. When all three are set, the cron also posts to WhatsApp via Green API. `GREEN_API_CHAT_ID` is the full chat id including suffix, e.g. `1234567890-1234567890@g.us` for a group or `353861234567@c.us` for a single number.
 - `CRON_SECRET` — optional, locks down the cron route
 
 The first run after deploy seeds state without sending an email. Subsequent runs only email when slots that weren't free last check are free now.
