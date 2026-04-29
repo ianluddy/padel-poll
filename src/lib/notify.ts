@@ -123,7 +123,7 @@ export async function sendOpeningWhatsApp(
     )
     .join("\n");
 
-  const body = `${heading}\n\n${lines}\n\nBook: https://projectpadel.ie/Booking/Grid.aspx\n\nIf you're up for playing give this message a *thumbsup*`;
+  const body = `${heading}\n\n${lines}\n\nBook: https://projectpadel.ie/Booking/Grid.aspx\n\nIf you're up for playing give this message a 👍`;
 
   for (const recipient of whapiRecipients(to)) {
     await sendWhapiText(baseUrl, token, recipient, body);
