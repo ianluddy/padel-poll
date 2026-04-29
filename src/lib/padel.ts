@@ -144,15 +144,12 @@ function nextWeekdays(daysAhead: number, fromDate = new Date()): Date[] {
   return result;
 }
 
-const WEEKDAY_NAMES = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
+const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function shortCourtName(name: string): string {
+  const match = name.match(/(\d+)/);
+  return match ? `Court ${match[1]}` : name;
+}
 
 export async function getAvailability(
   venueKey: VenueKey,
@@ -173,7 +170,7 @@ export async function getAvailability(
       const grid = await fetchGrid(venue.id, dateStr, session);
       const courts: CourtSlot[] = grid.Columnas.map((court) => ({
         courtId: court.Id,
-        courtName: court.TextoPrincipal,
+        courtName: shortCourtName(court.TextoPrincipal),
         available: isCourtFreeAt(court, slotStart, slotEnd),
       }));
       return {

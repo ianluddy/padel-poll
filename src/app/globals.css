@@ -68,32 +68,24 @@ h1 {
 
 table {
   width: 100%;
+  max-width: 500px;
   border-collapse: collapse;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
+  background: transparent;
 }
 
-th,
 td {
-  padding: 10px 14px;
+  padding: 14px 8px;
   text-align: left;
-  border-bottom: 1px solid var(--border);
   font-size: 14px;
+  vertical-align: middle;
 }
 
-th {
-  background: #181d23;
-  color: var(--muted);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-size: 12px;
+td:first-child {
+  padding-left: 0;
 }
 
-tr:last-child td {
-  border-bottom: none;
+td:last-child {
+  padding-right: 0;
 }
 
 .pill {
@@ -116,8 +108,9 @@ tr:last-child td {
 
 .courts {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
+  justify-content: flex-end;
 }
 
 .court-chip {
@@ -133,10 +126,24 @@ tr:last-child td {
   color: var(--green);
 }
 
+.court-label-short {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .court-label-full {
+    display: none;
+  }
+  .court-label-short {
+    display: inline;
+  }
+}
+
 .meta {
   color: var(--muted);
   font-size: 13px;
   margin-top: 16px;
+  opacity: 0.4;
 }
 
 .error {
