@@ -20,7 +20,7 @@ export default async function Home() {
     body = (
       <>
         <p className="subtitle">
-          {data.venue} · weekday {data.hour} slots · next 21 days
+          {data.venue} · Mon-Thur 8pm Slots
         </p>
         <p className="meta">
           Last checked {new Date().toLocaleString("en-IE", { timeZone: "Europe/Dublin" })}
