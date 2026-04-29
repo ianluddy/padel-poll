@@ -65,6 +65,72 @@ export async function sendOpeningEmail(
   return { sent: true };
 }
 
+function getWhapiEnv(): {
+  token: string | undefined;
+  to: string | undefined;
+  baseUrl: string;
+} {
+  return {
+    token: process.env.WHAPI_TOKEN,
+    to: process.env.WHAPI_TO,
+    baseUrl: process.env.WHAPI_BASE_URL ?? "https://gate.whapi.cloud",
+  };
+}
+
+function whapiRecipients(to: string): string[] {
+  return to
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+async function sendWhapiText(
+  baseUrl: string,
+  token: string,
+  to: string,
+  body: string,
+): Promise<void> {
+  const res = await fetch(`${baseUrl}/messages/text`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ to, body }),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(`whapi ${res.status}: ${detail || res.statusText}`);
+  }
+}
+
+export async function sendOpeningWhatsApp(
+  openings: SlotOpening[],
+): Promise<{ sent: boolean; reason?: string }> {
+  const { token, to, baseUrl } = getWhapiEnv();
+  if (!token) return { sent: false, reason: "WHAPI_TOKEN not set" };
+  if (!to) return { sent: false, reason: "WHAPI_TO not set" };
+
+  const heading =
+    openings.length === 1
+      ? `Padel slot open: ${openings[0].weekday} ${openings[0].date} ${openings[0].hour}`
+      : `${openings.length} new padel slots open`;
+
+  const lines = openings
+    .map(
+      (o) =>
+        `• ${o.weekday} ${o.date} ${o.hour} — ${o.venue} (${o.courts.join(", ")})`,
+    )
+    .join("\n");
+
+  const body = `${heading}\n\n${lines}\n\nBook: https://projectpadel.ie/Booking/Grid.aspx`;
+
+  for (const recipient of whapiRecipients(to)) {
+    await sendWhapiText(baseUrl, token, recipient, body);
+  }
+  return { sent: true };
+}
+
 export async function sendFailureEmail(
   failures: CronFailure[],
 ): Promise<{ sent: boolean; reason?: string }> {
@@ -90,5 +156,21 @@ export async function sendFailureEmail(
   const text = failures.map((f) => `${f.stage}: ${f.detail}`).join("\n");
 
   await resend.emails.send({ from, to, subject, html, text });
+  return { sent: true };
+}
+
+export async function sendFailureWhatsApp(
+  failures: CronFailure[],
+): Promise<{ sent: boolean; reason?: string }> {
+  const { token, to, baseUrl } = getWhapiEnv();
+  if (!token) return { sent: false, reason: "WHAPI_TOKEN not set" };
+  if (!to) return { sent: false, reason: "WHAPI_TO not set" };
+
+  const lines = failures.map((f) => `• ${f.stage}: ${f.detail}`).join("\n");
+  const body = `Padel Poll cron failed (${failures.length})\n\n${lines}`;
+
+  for (const recipient of whapiRecipients(to)) {
+    await sendWhapiText(baseUrl, token, recipient, body);
+  }
   return { sent: true };
 }
