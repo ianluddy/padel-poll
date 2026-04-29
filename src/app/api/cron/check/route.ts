@@ -12,6 +12,10 @@ import {
   type SlotOpening,
   type CronFailure,
 } from "@/lib/notify";
+import {
+  sendOpeningWhatsApp,
+  sendFailureWhatsApp,
+} from "@/lib/whatsapp";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -61,18 +65,30 @@ export async function GET(request: Request) {
     }
   }
 
-  let openingNotification: { sent: boolean; reason?: string; count: number } = {
-    sent: false,
+  let openingNotification: {
+    email: { sent: boolean; reason?: string };
+    whatsapp: { sent: boolean; reason?: string };
+    count: number;
+  } = {
+    email: { sent: false },
+    whatsapp: { sent: false },
     count: 0,
   };
-  let failureNotification: { sent: boolean; reason?: string } = { sent: false };
+  let failureNotification: {
+    email: { sent: boolean; reason?: string };
+    whatsapp: { sent: boolean; reason?: string };
+  } = { email: { sent: false }, whatsapp: { sent: false } };
 
   if (failures.length > 0) {
-    failureNotification = await sendFailureEmail(failures);
+    const [emailRes, waRes] = await Promise.all([
+      sendFailureEmail(failures),
+      sendFailureWhatsApp(failures),
+    ]);
+    failureNotification = { email: emailRes, whatsapp: waRes };
     openingNotification = {
-      sent: false,
+      email: { sent: false, reason: "skipped: partial fetch failure" },
+      whatsapp: { sent: false, reason: "skipped: partial fetch failure" },
       count: 0,
-      reason: "skipped: partial fetch failure",
     };
   } else {
     const previous = await loadSnapshot();
@@ -81,13 +97,20 @@ export async function GET(request: Request) {
 
     if (previous == null) {
       openingNotification = {
-        sent: false,
+        email: { sent: false, reason: "first run; seeding state" },
+        whatsapp: { sent: false, reason: "first run; seeding state" },
         count: 0,
-        reason: "first run; seeding state",
       };
     } else if (newOpenings.length > 0) {
-      const result = await sendOpeningEmail(newOpenings);
-      openingNotification = { ...result, count: newOpenings.length };
+      const [emailRes, waRes] = await Promise.all([
+        sendOpeningEmail(newOpenings),
+        sendOpeningWhatsApp(newOpenings),
+      ]);
+      openingNotification = {
+        email: emailRes,
+        whatsapp: waRes,
+        count: newOpenings.length,
+      };
     }
 
     await saveSnapshot({
