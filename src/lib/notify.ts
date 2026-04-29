@@ -155,7 +155,7 @@ export async function sendOpeningWhatsApp(
   const lines = openings
     .map(
       (o) =>
-        `• ${formatSlotDate(o.weekday, o.date)} ${o.hour} — ${o.venue} (${o.courts.join(", ")})`,
+        `• ${formatSlotDate(o.weekday, o.date)} ${o.hour} — ${o.courts.join(", ")}`,
     )
     .join("\n");
 
