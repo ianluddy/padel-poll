@@ -113,7 +113,7 @@ export async function sendOpeningWhatsApp(
 
   const heading =
     openings.length === 1
-      ? `Padel slot open: ${openings[0].weekday} ${openings[0].date} ${openings[0].hour}`
+      ? `Padel slot open`
       : `${openings.length} new padel slots open`;
 
   const lines = openings
