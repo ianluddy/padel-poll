@@ -3,6 +3,16 @@ import { getAvailability } from "@/lib/padel";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+function formatDayLabel(date: string, weekday: string): string {
+  const [dd, mm] = date.split("/");
+  return `${weekday} ${MONTHS[parseInt(mm, 10) - 1]} ${parseInt(dd, 10)}`;
+}
+
 export default async function Home() {
   let body: React.ReactNode;
   try {
@@ -12,20 +22,14 @@ export default async function Home() {
         <p className="subtitle">
           {data.venue} · weekday {data.hour} slots · next 21 days
         </p>
+        <p className="meta">
+          Last checked {new Date().toLocaleString("en-IE", { timeZone: "Europe/Dublin" })}
+        </p>
         <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Day</th>
-              <th>Status</th>
-              <th>Courts</th>
-            </tr>
-          </thead>
           <tbody>
             {data.days.map((day) => (
               <tr key={day.date}>
-                <td>{day.date}</td>
-                <td>{day.weekday}</td>
+                <td>{formatDayLabel(day.date, day.weekday)}</td>
                 <td>
                   <span
                     className={`pill ${day.anyAvailable ? "available" : "busy"}`}
@@ -41,7 +45,10 @@ export default async function Home() {
                         className={`court-chip ${c.available ? "available" : ""}`}
                         title={c.available ? "Free" : "Booked"}
                       >
-                        {c.courtName}
+                        <span className="court-label-full">{c.courtName}</span>
+                        <span className="court-label-short">
+                          {c.courtName.replace("Court", "Crt")}
+                        </span>
                       </span>
                     ))}
                   </div>
@@ -50,9 +57,6 @@ export default async function Home() {
             ))}
           </tbody>
         </table>
-        <p className="meta">
-          Last checked {new Date().toLocaleString("en-IE", { timeZone: "Europe/Dublin" })}
-        </p>
       </>
     );
   } catch (err) {
