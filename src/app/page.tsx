@@ -1,4 +1,43 @@
-import { loadAvailability } from "@/lib/state";
+import { loadAvailability, type CachedAvailability } from "@/lib/state";
+import type { DaySlot } from "@/lib/padel";
+
+const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function buildDemoCache(): CachedAvailability {
+  const today = new Date();
+  const days: DaySlot[] = [];
+  for (let i = 0; i < 30 && days.length < 14; i++) {
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+    const dow = d.getDay();
+    if (dow < 1 || dow > 4) continue;
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const date = `${dd}/${mm}/${d.getFullYear()}`;
+    const seed = (d.getDate() + d.getMonth()) % 4;
+    const courts = [1, 2, 3].map((n) => ({
+      courtId: String(n),
+      courtName: `Court ${n}`,
+      available: seed === n - 1,
+    }));
+    days.push({
+      date,
+      weekday: WEEKDAY_NAMES[dow],
+      hour: "20:00",
+      courts,
+      anyAvailable: courts.some((c) => c.available),
+    });
+  }
+  return {
+    checkedAt: new Date().toISOString(),
+    data: {
+      venue: "Project Padel Galway",
+      venueId: 4,
+      hour: "20:00",
+      errors: [],
+      days,
+    },
+  };
+}
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -31,7 +70,9 @@ function formatCheckedAt(iso: string): string {
 export default async function Home() {
   let body: React.ReactNode;
   try {
-    const cached = await loadAvailability("galway");
+    const cached =
+      (await loadAvailability("galway")) ??
+      (process.env.PADEL_DEMO === "1" ? buildDemoCache() : null);
     if (!cached) {
       body = (
         <div className="error">
