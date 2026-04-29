@@ -128,14 +128,14 @@ function formatDate(d: Date): string {
   return `${dd}/${mm}/${d.getFullYear()}`;
 }
 
-function nextWeekdays(days: number, fromDate = new Date()): Date[] {
+function nextWeekdays(daysAhead: number, fromDate = new Date()): Date[] {
   const result: Date[] = [];
   const start = new Date(
     fromDate.getFullYear(),
     fromDate.getMonth(),
     fromDate.getDate(),
   );
-  for (let i = 0; i < days; i++) {
+  for (let i = 0; i <= daysAhead; i++) {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
     const dow = d.getDay();
@@ -156,9 +156,9 @@ const WEEKDAY_NAMES = [
 
 export async function getAvailability(
   venueKey: VenueKey,
-  options: { hour?: number; days?: number; durationMinutes?: number } = {},
+  options: { hour?: number; daysAhead?: number; durationMinutes?: number } = {},
 ): Promise<VenueAvailability> {
-  const { hour = 20, days: daysAhead = 21, durationMinutes = 60 } = options;
+  const { hour = 20, daysAhead = 21, durationMinutes = 60 } = options;
   const venue = VENUES[venueKey];
   const session = await getSession(venue.id);
 
