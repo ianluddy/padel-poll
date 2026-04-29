@@ -14,7 +14,18 @@ function formatDayLabel(date: string, weekday: string): string {
 }
 
 function formatCheckedAt(iso: string): string {
-  return new Date(iso).toLocaleString("en-IE", { timeZone: "Europe/Dublin" });
+  const d = new Date(iso);
+  const parts = new Intl.DateTimeFormat("en-IE", {
+    timeZone: "Europe/Dublin",
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(d);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return `${get("day")} ${get("month")} ${get("hour")}:${get("minute")}:${get("second")}`;
 }
 
 export default async function Home() {
@@ -35,7 +46,7 @@ export default async function Home() {
             {data.venue} · Mon-Thur 8pm Slots
           </p>
           <p className="meta">
-            Last checked {formatCheckedAt(checkedAt)}
+            Checked {formatCheckedAt(checkedAt)}
           </p>
           <table>
             <tbody>
