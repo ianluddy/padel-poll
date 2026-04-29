@@ -1,10 +1,17 @@
 import { Redis } from "@upstash/redis";
+import type { VenueAvailability, VenueKey } from "./padel";
 
 const SNAPSHOT_KEY = "padel:lastSnapshot";
+const AVAILABILITY_KEY_PREFIX = "padel:availability:";
 
 export type Snapshot = {
   ts: string;
   slots: string[];
+};
+
+export type CachedAvailability = {
+  checkedAt: string;
+  data: VenueAvailability;
 };
 
 let redis: Redis | null = null;
@@ -30,6 +37,26 @@ export async function saveSnapshot(snapshot: Snapshot): Promise<void> {
   const r = getRedis();
   if (!r) return;
   await r.set(SNAPSHOT_KEY, snapshot);
+}
+
+export async function loadAvailability(
+  venueKey: VenueKey,
+): Promise<CachedAvailability | null> {
+  const r = getRedis();
+  if (!r) return null;
+  return (
+    (await r.get<CachedAvailability>(AVAILABILITY_KEY_PREFIX + venueKey)) ??
+    null
+  );
+}
+
+export async function saveAvailability(
+  venueKey: VenueKey,
+  cached: CachedAvailability,
+): Promise<void> {
+  const r = getRedis();
+  if (!r) return;
+  await r.set(AVAILABILITY_KEY_PREFIX + venueKey, cached);
 }
 
 export function isStateConfigured(): boolean {

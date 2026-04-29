@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { getAvailability, VENUES, type VenueKey } from "@/lib/padel";
-import { loadSnapshot, saveSnapshot, isStateConfigured } from "@/lib/state";
+import {
+  loadSnapshot,
+  saveSnapshot,
+  saveAvailability,
+  isStateConfigured,
+} from "@/lib/state";
 import {
   sendOpeningEmail,
   sendFailureEmail,
@@ -27,6 +32,10 @@ export async function GET(request: Request) {
   for (const key of venues) {
     try {
       const data = await getAvailability(key);
+      await saveAvailability(key, {
+        checkedAt: new Date().toISOString(),
+        data,
+      });
       for (const err of data.errors) {
         failures.push({
           stage: `fetch ${data.venue} ${err.date}`,
