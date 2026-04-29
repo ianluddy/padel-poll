@@ -23,6 +23,7 @@ body {
     Arial, sans-serif;
   font-size: 15px;
   line-height: 1.5;
+  overflow-x: hidden;
 }
 
 a {
@@ -146,6 +147,53 @@ td:last-child {
   }
   .court-label-short {
     display: inline;
+  }
+
+  main {
+    padding: 24px 12px 48px;
+  }
+
+  table,
+  tbody {
+    display: block;
+    max-width: 100%;
+    width: 100%;
+    margin-top: 16px;
+  }
+
+  tr {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 12px;
+    row-gap: 6px;
+    padding: 10px 0;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  td {
+    display: block;
+    padding: 0;
+    white-space: normal;
+    min-width: 0;
+  }
+
+  td:first-child,
+  td:nth-child(2),
+  td:last-child {
+    text-align: left;
+  }
+
+  td:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .courts {
+    flex-wrap: wrap;
   }
 }
 
