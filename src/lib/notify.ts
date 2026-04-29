@@ -113,7 +113,7 @@ export async function sendOpeningWhatsApp(
 
   const heading =
     openings.length === 1
-      ? `Padel slot open: ${openings[0].weekday} ${openings[0].date} ${openings[0].hour}`
+      ? `Padel slot open`
       : `${openings.length} new padel slots open`;
 
   const lines = openings
@@ -123,7 +123,7 @@ export async function sendOpeningWhatsApp(
     )
     .join("\n");
 
-  const body = `${heading}\n\n${lines}\n\nBook: https://projectpadel.ie/Booking/Grid.aspx`;
+  const body = `${heading}\n\n${lines}\n\nBook: https://projectpadel.ie/Booking/Grid.aspx\n\nGive a 👍 if you want to play`;
 
   for (const recipient of whapiRecipients(to)) {
     await sendWhapiText(baseUrl, token, recipient, body);
