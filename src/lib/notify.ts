@@ -84,6 +84,42 @@ function whapiRecipients(to: string): string[] {
     .filter(Boolean);
 }
 
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+function ordinalSuffix(n: number): string {
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return "th";
+  switch (n % 10) {
+    case 1:
+      return "st";
+    case 2:
+      return "nd";
+    case 3:
+      return "rd";
+    default:
+      return "th";
+  }
+}
+
+function formatSlotDate(weekday: string, dateStr: string): string {
+  const [dd, mm] = dateStr.split("/").map(Number);
+  if (!dd || !mm || mm < 1 || mm > 12) return `${weekday} ${dateStr}`;
+  return `${weekday} ${MONTH_NAMES[mm - 1]} ${dd}${ordinalSuffix(dd)}`;
+}
+
 async function sendWhapiText(
   baseUrl: string,
   token: string,
@@ -119,7 +155,7 @@ export async function sendOpeningWhatsApp(
   const lines = openings
     .map(
       (o) =>
-        `• ${o.weekday} ${o.date} ${o.hour} — ${o.venue} (${o.courts.join(", ")})`,
+        `• ${formatSlotDate(o.weekday, o.date)} ${o.hour} — ${o.venue} (${o.courts.join(", ")})`,
     )
     .join("\n");
 
