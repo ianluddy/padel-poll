@@ -6,8 +6,11 @@ const AVAILABILITY_KEY_PREFIX = "padel:availability:";
 
 export type Snapshot = {
   ts: string;
-  slots: string[];
+  seen: string[];
+  open: string[];
 };
+
+type StoredSnapshot = Partial<Snapshot> & { slots?: string[] };
 
 export type CachedAvailability = {
   checkedAt: string;
@@ -30,7 +33,13 @@ function getRedis(): Redis | null {
 export async function loadSnapshot(): Promise<Snapshot | null> {
   const r = getRedis();
   if (!r) return null;
-  return (await r.get<Snapshot>(SNAPSHOT_KEY)) ?? null;
+  const stored = await r.get<StoredSnapshot>(SNAPSHOT_KEY);
+  if (!stored) return null;
+  if (stored.seen && stored.open) {
+    return { ts: stored.ts ?? "", seen: stored.seen, open: stored.open };
+  }
+  const legacy = stored.slots ?? [];
+  return { ts: stored.ts ?? "", seen: legacy, open: legacy };
 }
 
 export async function saveSnapshot(snapshot: Snapshot): Promise<void> {
