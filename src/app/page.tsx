@@ -3,6 +3,8 @@ import { loadAvailability } from "@/lib/state";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+const BOOKING_URL = "https://projectpadel.ie/Booking/Grid.aspx";
+
 const MONTHS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
@@ -45,8 +47,10 @@ export default async function Home() {
           <p className="subtitle">
             {data.venue} · Mon-Thur 8pm Slots
           </p>
-          <p className="meta">
-            Checked {formatCheckedAt(checkedAt)}
+          <p className="booking-link">
+            <a href={BOOKING_URL} target="_blank" rel="noopener noreferrer">
+              Book a court →
+            </a>
           </p>
           <table>
             <tbody>
@@ -62,24 +66,46 @@ export default async function Home() {
                   </td>
                   <td>
                     <div className="courts">
-                      {day.courts.map((c) => (
-                        <span
-                          key={c.courtId}
-                          className={`court-chip ${c.available ? "available" : ""}`}
-                          title={c.available ? "Free" : "Booked"}
-                        >
-                          <span className="court-label-full">{c.courtName}</span>
-                          <span className="court-label-short">
-                            {c.courtName.replace("Court", "Crt")}
+                      {day.courts.map((c) => {
+                        const className = `court-chip ${c.available ? "available" : ""}`;
+                        const labels = (
+                          <>
+                            <span className="court-label-full">{c.courtName}</span>
+                            <span className="court-label-short">
+                              {c.courtName.replace("Court", "Crt")}
+                            </span>
+                          </>
+                        );
+                        return c.available ? (
+                          <a
+                            key={c.courtId}
+                            className={className}
+                            href={BOOKING_URL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Free — book now"
+                          >
+                            {labels}
+                          </a>
+                        ) : (
+                          <span
+                            key={c.courtId}
+                            className={className}
+                            title="Booked"
+                          >
+                            {labels}
                           </span>
-                        </span>
-                      ))}
+                        );
+                      })}
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          <p className="meta">
+            Checked {formatCheckedAt(checkedAt)}
+          </p>
         </>
       );
     }
