@@ -126,11 +126,16 @@ td:last-child {
   border-radius: 6px;
   border: 1px solid var(--border);
   color: var(--muted);
+  text-decoration: none;
 }
 
 .court-chip.available {
   border-color: rgba(34, 197, 94, 0.4);
   color: var(--green);
+}
+
+a.court-chip.available:hover {
+  background: rgba(34, 197, 94, 0.12);
 }
 
 .court-label-short {
@@ -184,7 +189,22 @@ td:last-child {
 .meta {
   color: var(--muted);
   font-size: 13px;
+  margin: 24px 0 0;
+}
+
+.booking-link {
   margin: 0;
+  font-size: 14px;
+}
+
+.booking-link a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.booking-link a:hover {
+  text-decoration: underline;
 }
 
 .error {
