@@ -147,19 +147,16 @@ export async function sendOpeningWhatsApp(
   if (!token) return { sent: false, reason: "WHAPI_TOKEN not set" };
   if (!to) return { sent: false, reason: "WHAPI_TO not set" };
 
-  const heading =
-    openings.length === 1
-      ? `Padel slot open`
-      : `${openings.length} new padel slots open`;
+  const heading = openings.length === 1 ? `Slot open:` : `Slots open:`;
 
   const lines = openings
     .map(
       (o) =>
-        `• ${formatSlotDate(o.weekday, o.date)} ${o.hour} — ${o.courts.join(", ")}`,
+        `• ${formatSlotDate(o.weekday, o.date)} ${o.hour} - ${o.courts.join(", ")}`,
     )
     .join("\n");
 
-  const body = `${heading}\n\n${lines}\n\nBook: https://projectpadel.ie/Booking/Grid.aspx\n\nGive a 👍 if you want to play`;
+  const body = `https://padel-poll.vercel.app/\n\n${heading}\n${lines}\n\nGive a 👍 if you want to play`;
 
   for (const recipient of whapiRecipients(to)) {
     await sendWhapiText(baseUrl, token, recipient, body);
