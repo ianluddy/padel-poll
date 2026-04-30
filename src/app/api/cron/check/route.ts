@@ -20,6 +20,18 @@ export const maxDuration = 60;
 
 type KeyedOpening = SlotOpening & { key: string };
 
+const NOTIFY_WINDOW_START_MIN = 7 * 60 + 10;
+const NOTIFY_WINDOW_END_MIN = 22 * 60 + 40;
+
+function isWithinNotifyWindow(now: Date): boolean {
+  const minutesGmt1 =
+    (now.getUTCHours() * 60 + now.getUTCMinutes() + 60) % (24 * 60);
+  return (
+    minutesGmt1 >= NOTIFY_WINDOW_START_MIN &&
+    minutesGmt1 <= NOTIFY_WINDOW_END_MIN
+  );
+}
+
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   const expected = process.env.CRON_SECRET;
@@ -27,9 +39,19 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  if (!isWithinNotifyWindow(new Date())) {
+    const summary = {
+      checkedAt: new Date().toISOString(),
+      skipped: "outside notify window (07:10–22:40 GMT+1)",
+    };
+    console.log("[padel-poll]", JSON.stringify(summary));
+    return NextResponse.json(summary);
+  }
+
   const venues = Object.keys(VENUES) as VenueKey[];
   const failures: CronFailure[] = [];
   const currentOpenings: KeyedOpening[] = [];
+  const currentSeen: string[] = [];
 
   for (const key of venues) {
     try {
@@ -45,9 +67,11 @@ export async function GET(request: Request) {
         });
       }
       for (const day of data.days) {
+        const slotKey = `${data.venueId}:${day.date}:${day.hour}`;
+        currentSeen.push(slotKey);
         if (!day.anyAvailable) continue;
         currentOpenings.push({
-          key: `${data.venueId}:${day.date}:${day.hour}`,
+          key: slotKey,
           venue: data.venue,
           weekday: day.weekday,
           date: day.date,
@@ -106,25 +130,31 @@ export async function GET(request: Request) {
     };
   } else {
     const previous = await loadSnapshot();
-    const previousSet = new Set(previous?.slots ?? []);
-    const newOpenings = currentOpenings.filter((o) => !previousSet.has(o.key));
 
     if (previous == null) {
       const reason = "first run; seeding state";
       openingNotification = { sent: false, count: 0, reason };
       openingWhatsApp = { sent: false, count: 0, reason };
-    } else if (newOpenings.length > 0) {
-      const [emailResult, waResult] = await Promise.all([
-        settle(sendOpeningEmail(newOpenings)),
-        settle(sendOpeningWhatsApp(newOpenings)),
-      ]);
-      openingNotification = { ...emailResult, count: newOpenings.length };
-      openingWhatsApp = { ...waResult, count: newOpenings.length };
+    } else {
+      const previousSeen = new Set(previous.seen);
+      const previousOpen = new Set(previous.open);
+      const reopened = currentOpenings.filter(
+        (o) => previousSeen.has(o.key) && !previousOpen.has(o.key),
+      );
+      if (reopened.length > 0) {
+        const [emailResult, waResult] = await Promise.all([
+          settle(sendOpeningEmail(reopened)),
+          settle(sendOpeningWhatsApp(reopened)),
+        ]);
+        openingNotification = { ...emailResult, count: reopened.length };
+        openingWhatsApp = { ...waResult, count: reopened.length };
+      }
     }
 
     await saveSnapshot({
       ts: new Date().toISOString(),
-      slots: currentOpenings.map((o) => o.key),
+      seen: currentSeen,
+      open: currentOpenings.map((o) => o.key),
     });
   }
 
