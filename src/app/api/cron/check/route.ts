@@ -67,17 +67,19 @@ export async function GET(request: Request) {
         });
       }
       for (const day of data.days) {
-        const slotKey = `${data.venueId}:${day.date}:${day.hour}`;
-        currentSeen.push(slotKey);
-        if (!day.anyAvailable) continue;
-        currentOpenings.push({
-          key: slotKey,
-          venue: data.venue,
-          weekday: day.weekday,
-          date: day.date,
-          hour: day.hour,
-          courts: day.courts.filter((c) => c.available).map((c) => c.courtName),
-        });
+        for (const court of day.courts) {
+          const slotKey = `${data.venueId}:${day.date}:${day.hour}:${court.courtId}`;
+          currentSeen.push(slotKey);
+          if (!court.available) continue;
+          currentOpenings.push({
+            key: slotKey,
+            venue: data.venue,
+            weekday: day.weekday,
+            date: day.date,
+            hour: day.hour,
+            courts: [court.courtName],
+          });
+        }
       }
     } catch (err) {
       failures.push({
@@ -142,9 +144,26 @@ export async function GET(request: Request) {
         (o) => previousSeen.has(o.key) && !previousOpen.has(o.key),
       );
       if (reopened.length > 0) {
+        const grouped = new Map<string, SlotOpening>();
+        for (const r of reopened) {
+          const groupKey = `${r.venue}|${r.date}|${r.hour}`;
+          const existing = grouped.get(groupKey);
+          if (existing) {
+            existing.courts.push(...r.courts);
+          } else {
+            grouped.set(groupKey, {
+              venue: r.venue,
+              weekday: r.weekday,
+              date: r.date,
+              hour: r.hour,
+              courts: [...r.courts],
+            });
+          }
+        }
+        const groupedOpenings = Array.from(grouped.values());
         const [emailResult, waResult] = await Promise.all([
-          settle(sendOpeningEmail(reopened)),
-          settle(sendOpeningWhatsApp(reopened)),
+          settle(sendOpeningEmail(groupedOpenings)),
+          settle(sendOpeningWhatsApp(groupedOpenings)),
         ]);
         openingNotification = { ...emailResult, count: reopened.length };
         openingWhatsApp = { ...waResult, count: reopened.length };
