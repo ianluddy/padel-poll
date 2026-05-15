@@ -207,6 +207,21 @@ a.court-chip.available:hover {
   text-decoration: underline;
 }
 
+.sessions {
+  margin-top: 40px;
+}
+
+.sessions-heading {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.sessions table {
+  margin-top: 12px;
+}
+
 .error {
   color: var(--red);
   background: rgba(239, 68, 68, 0.1);

@@ -1,4 +1,4 @@
-import { loadAvailability } from "@/lib/state";
+import { loadAvailability, loadUserSessions } from "@/lib/state";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -30,7 +30,10 @@ function formatCheckedAt(iso: string): string {
   return `${get("day")} ${get("month")} ${get("hour")}:${get("minute")}:${get("second")}`;
 }
 
+const INTRANET_URL = "https://projectpadel.ie/Intranet/Index.aspx";
+
 export default async function Home() {
+  const userSessions = await loadUserSessions().catch(() => null);
   let body: React.ReactNode;
   try {
     const cached = await loadAvailability("galway");
@@ -118,10 +121,45 @@ export default async function Home() {
     );
   }
 
+  const hasSessions =
+    userSessions && userSessions.sessions && userSessions.sessions.length > 0;
+
   return (
     <main>
       <h1>Padel Poll</h1>
       {body}
+      {hasSessions ? (
+        <section className="sessions">
+          <h2 className="sessions-heading">My Upcoming Sessions</h2>
+          <table>
+            <tbody>
+              {userSessions!.sessions.map((s, i) => {
+                const time =
+                  s.startTime && s.endTime
+                    ? `${s.startTime}–${s.endTime}`
+                    : s.startTime;
+                const detail =
+                  [s.court, s.venue].filter(Boolean).join(" · ") || "—";
+                return (
+                  <tr key={`${s.date}-${s.startTime}-${i}`}>
+                    <td>{s.date}</td>
+                    <td>{time}</td>
+                    <td>
+                      <a
+                        href={INTRANET_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {detail}
+                      </a>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </section>
+      ) : null}
     </main>
   );
 }
