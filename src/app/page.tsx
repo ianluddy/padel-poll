@@ -146,7 +146,7 @@ export default async function Home() {
                     <td>{time}</td>
                     <td>
                       <a
-                        href={INTRANET_URL}
+                        href={s.bookingUrl ?? INTRANET_URL}
                         target="_blank"
                         rel="noopener noreferrer"
                       >

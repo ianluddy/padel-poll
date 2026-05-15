@@ -22,6 +22,7 @@ export type UserSession = {
   endTime: string;
   court: string;
   venue: string;
+  bookingUrl?: string;
 };
 
 export class PadelAccountError extends Error {
@@ -191,15 +192,6 @@ async function fetchIndex(jar: CookieJar): Promise<string> {
   return res.text();
 }
 
-function stripTags(s: string): string {
-  return s
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 function findNextActivitiesBlock(html: string): string | null {
   const lower = html.toLowerCase();
   const heading = lower.indexOf("next activities");
@@ -209,59 +201,59 @@ function findNextActivitiesBlock(html: string): string | null {
   return endHeading > 0 ? tail.slice(0, endHeading) : tail.slice(0, 8000);
 }
 
-const DATE_RE =
-  /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{4}-\d{2}-\d{2}|(?:mon|tue|wed|thu|fri|sat|sun)[a-z]*\.?\s+\d{1,2}(?:\s+[a-z]{3,9})?)/i;
-const TIME_RANGE_RE = /(\d{1,2}:\d{2})\s*[-–—a]\s*(\d{1,2}:\d{2})/;
-const SINGLE_TIME_RE = /(\d{1,2}:\d{2})/;
+function getAttr(tag: string, name: string): string {
+  const re = new RegExp(`\\b${name}="([^"]*)"`, "i");
+  const m = tag.match(re);
+  return m ? decodeHtmlAttr(m[1]) : "";
+}
+
+function timePart(value: string): string {
+  const parts = value.split(/\s+/);
+  const time = parts.length > 1 ? parts[1] : parts[0];
+  return time.slice(0, 5);
+}
 
 export function parseNextActivities(html: string): UserSession[] {
   const block = findNextActivitiesBlock(html);
   if (!block) return [];
 
-  const candidates: string[] = [];
-  for (const rowMatch of block.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
-    candidates.push(stripTags(rowMatch[1]));
-  }
-  for (const liMatch of block.matchAll(/<li\b[^>]*>([\s\S]*?)<\/li>/gi)) {
-    candidates.push(stripTags(liMatch[1]));
-  }
-  for (const divMatch of block.matchAll(
-    /<div[^>]*class="[^"]*(?:activity|reserva|booking|next)[^"]*"[^>]*>([\s\S]*?)<\/div>/gi,
-  )) {
-    candidates.push(stripTags(divMatch[1]));
-  }
-
   const sessions: UserSession[] = [];
   const seen = new Set<string>();
-  for (const text of candidates) {
-    if (!text) continue;
-    const dateMatch = text.match(DATE_RE);
-    if (!dateMatch) continue;
-    const range = text.match(TIME_RANGE_RE);
-    let startTime = "";
-    let endTime = "";
-    if (range) {
-      startTime = range[1];
-      endTime = range[2];
-    } else {
-      const single = text.match(SINGLE_TIME_RE);
-      if (!single) continue;
-      startTime = single[1];
-    }
-    const courtMatch = text.match(/(?:court|pista|cancha)\s*(\d+)/i);
-    const court = courtMatch ? `Court ${courtMatch[1]}` : "";
-    const venueMatch = text.match(/project\s*padel\s*[a-z]+/i);
-    const venue = venueMatch ? venueMatch[0].replace(/\s+/g, " ") : "";
+  const anchorRe = /<a\b[^>]*\bclass="TextoLinkBlanco"[^>]*>/gi;
+  for (const m of block.matchAll(anchorRe)) {
+    const tag = m[0];
+    const fechainicio = getAttr(tag, "fechainicio");
+    const horainicio = getAttr(tag, "horainicio");
+    const horafin = getAttr(tag, "horafin");
+    if (!fechainicio || !horainicio) continue;
 
-    const key = `${dateMatch[1]}|${startTime}|${endTime}|${court}|${venue}`;
+    const date = fechainicio.split(/\s+/)[0] ?? "";
+    const startTime = timePart(horainicio);
+    const endTime = horafin ? timePart(horafin) : "";
+    const recurso = getAttr(tag, "recurso");
+    const centro = getAttr(tag, "centro");
+    const courtMatch = recurso.match(/^(Court\s+\d+)/i);
+    const court = courtMatch ? courtMatch[1] : recurso;
+    const href = getAttr(tag, "href");
+    let bookingUrl: string | undefined;
+    if (href) {
+      try {
+        bookingUrl = new URL(href, `${BASE_URL}/Intranet/`).toString();
+      } catch {
+        bookingUrl = undefined;
+      }
+    }
+
+    const key = `${date}|${startTime}|${endTime}|${court}|${centro}`;
     if (seen.has(key)) continue;
     seen.add(key);
     sessions.push({
-      date: dateMatch[1],
+      date,
       startTime,
       endTime,
       court,
-      venue,
+      venue: centro,
+      bookingUrl,
     });
   }
   return sessions;
