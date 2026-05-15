@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/check",
       "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/sessions",
+      "schedule": "0 * * * *"
     }
   ]
 }
