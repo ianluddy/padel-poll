@@ -220,6 +220,11 @@ a.court-chip.available:hover {
 
 .sessions table {
   margin-top: 12px;
+  max-width: 240px;
+}
+
+.sessions td {
+  padding: 6px 8px;
 }
 
 .error {

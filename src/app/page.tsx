@@ -15,6 +15,20 @@ function formatDayLabel(date: string, weekday: string): string {
   return `${weekday} ${MONTHS[parseInt(mm, 10) - 1]} ${parseInt(dd, 10)}`;
 }
 
+function formatSessionDate(date: string): string {
+  const [dd, mm, yyyy] = date.split("/");
+  const day = parseInt(dd, 10);
+  const month = parseInt(mm, 10);
+  const year = parseInt(yyyy, 10);
+  if (!day || !month || !year) return date;
+  const dt = new Date(Date.UTC(year, month - 1, day, 12));
+  const weekday = new Intl.DateTimeFormat("en-IE", {
+    timeZone: "Europe/Dublin",
+    weekday: "short",
+  }).format(dt);
+  return `${weekday} ${MONTHS[month - 1]} ${day}`;
+}
+
 function formatCheckedAt(iso: string): string {
   const d = new Date(iso);
   const parts = new Intl.DateTimeFormat("en-IE", {
@@ -134,15 +148,11 @@ export default async function Home() {
           <table>
             <tbody>
               {userSessions!.sessions.map((s, i) => {
-                const time =
-                  s.startTime && s.endTime
-                    ? `${s.startTime}–${s.endTime}`
-                    : s.startTime;
                 const detail = s.court || "—";
                 return (
                   <tr key={`${s.date}-${s.startTime}-${i}`}>
-                    <td>{s.date}</td>
-                    <td>{time}</td>
+                    <td>{formatSessionDate(s.date)}</td>
+                    <td>{s.startTime}</td>
                     <td>
                       <a
                         href={s.bookingUrl ?? INTRANET_URL}
