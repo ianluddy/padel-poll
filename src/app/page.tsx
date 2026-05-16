@@ -138,8 +138,7 @@ export default async function Home() {
                   s.startTime && s.endTime
                     ? `${s.startTime}–${s.endTime}`
                     : s.startTime;
-                const detail =
-                  [s.court, s.venue].filter(Boolean).join(" · ") || "—";
+                const detail = s.court || "—";
                 return (
                   <tr key={`${s.date}-${s.startTime}-${i}`}>
                     <td>{s.date}</td>
