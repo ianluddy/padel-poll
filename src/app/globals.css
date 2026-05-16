@@ -89,10 +89,12 @@ td {
 td:first-child {
   font-weight: 600;
   color: var(--text);
+  text-align: left;
 }
 
 td:last-child {
   width: 1%;
+  text-align: right;
 }
 
 .pill {
@@ -117,7 +119,7 @@ td:last-child {
   display: flex;
   flex-wrap: nowrap;
   gap: 6px;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 .court-chip {
