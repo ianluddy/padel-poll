@@ -164,6 +164,80 @@ export async function sendOpeningWhatsApp(
   return { sent: true };
 }
 
+export type CancellationReminder = {
+  weekday: string;
+  date: string;
+  startTime: string;
+  court: string;
+  venue: string;
+  hoursUntil: number;
+};
+
+export async function sendCancellationReminderEmail(
+  reminders: CancellationReminder[],
+): Promise<{ sent: boolean; reason?: string }> {
+  const { apiKey, to, from } = getEnv();
+  if (!apiKey) return { sent: false, reason: "RESEND_API_KEY not set" };
+  if (!to) return { sent: false, reason: "EMAIL_TO not set" };
+
+  const resend = new Resend(apiKey);
+  const subject =
+    reminders.length === 1
+      ? `Cancel by 24h: ${reminders[0].weekday} ${reminders[0].date} ${reminders[0].startTime}`
+      : `${reminders.length} bookings approaching 24h cancellation cutoff`;
+
+  const rows = reminders
+    .map(
+      (r) =>
+        `<tr><td>${r.weekday}</td><td>${r.date}</td><td>${r.startTime}</td><td>${r.court}</td><td>${r.venue}</td></tr>`,
+    )
+    .join("");
+  const html = `
+    <p>The free cancellation window (24h) is closing soon for:</p>
+    <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:sans-serif;font-size:14px">
+      <thead><tr><th>Day</th><th>Date</th><th>Time</th><th>Court</th><th>Venue</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p>If anyone can't make it, let the group know now so the booking can be cancelled for free.</p>
+  `;
+  const text = reminders
+    .map(
+      (r) =>
+        `${r.weekday} ${r.date} ${r.startTime} — ${r.court} (${r.venue})`,
+    )
+    .join("\n");
+
+  await resend.emails.send({ from, to, subject, html, text });
+  return { sent: true };
+}
+
+export async function sendCancellationReminderWhatsApp(
+  reminders: CancellationReminder[],
+): Promise<{ sent: boolean; reason?: string }> {
+  const { token, to, baseUrl } = getWhapiEnv();
+  if (!token) return { sent: false, reason: "WHAPI_TOKEN not set" };
+  if (!to) return { sent: false, reason: "WHAPI_TO not set" };
+
+  const heading =
+    reminders.length === 1
+      ? `⏰ Free cancellation closes soon for this booking:`
+      : `⏰ Free cancellation closes soon for these ${reminders.length} bookings:`;
+
+  const lines = reminders
+    .map(
+      (r) =>
+        `• ${formatSlotDate(r.weekday, r.date)} ${r.startTime} - ${r.court}`,
+    )
+    .join("\n");
+
+  const body = `${heading}\n${lines}\n\nLet us know if you can't make it`;
+
+  for (const recipient of whapiRecipients(to)) {
+    await sendWhapiText(baseUrl, token, recipient, body);
+  }
+  return { sent: true };
+}
+
 export async function sendFailureEmail(
   failures: CronFailure[],
 ): Promise<{ sent: boolean; reason?: string }> {
