@@ -6,6 +6,8 @@ const SNAPSHOT_KEY = "padel:lastSnapshot";
 const AVAILABILITY_KEY_PREFIX = "padel:availability:";
 const USER_SESSIONS_KEY = "padel:userSessions";
 const REMINDED_SESSIONS_KEY = "padel:remindedSessions";
+const SESSION_PLAYERS_KEY_PREFIX = "padel:sessionPlayers:";
+const SESSION_PLAYERS_TTL_SECONDS = 60 * 24 * 60 * 60;
 
 export type Snapshot = {
   ts: string;
@@ -106,6 +108,54 @@ export async function saveRemindedSessions(
   const r = getRedis();
   if (!r) return;
   await r.set(REMINDED_SESSIONS_KEY, reminded);
+}
+
+export type SessionPlayers = {
+  players: string[];
+  updatedAt: string;
+};
+
+export async function loadSessionPlayers(
+  sessionKey: string,
+): Promise<string[] | null> {
+  const r = getRedis();
+  if (!r) return null;
+  const stored = await r.get<SessionPlayers>(
+    SESSION_PLAYERS_KEY_PREFIX + sessionKey,
+  );
+  return stored?.players ?? null;
+}
+
+export async function loadSessionPlayersMany(
+  sessionKeys: string[],
+): Promise<Record<string, string[]>> {
+  const out: Record<string, string[]> = {};
+  if (sessionKeys.length === 0) return out;
+  const r = getRedis();
+  if (!r) return out;
+  const redisKeys = sessionKeys.map((k) => SESSION_PLAYERS_KEY_PREFIX + k);
+  const values = await r.mget<(SessionPlayers | null)[]>(...redisKeys);
+  sessionKeys.forEach((k, i) => {
+    const v = values[i];
+    if (v && Array.isArray(v.players)) out[k] = v.players;
+  });
+  return out;
+}
+
+export async function saveSessionPlayers(
+  sessionKey: string,
+  players: string[],
+): Promise<SessionPlayers> {
+  const r = getRedis();
+  const payload: SessionPlayers = {
+    players,
+    updatedAt: new Date().toISOString(),
+  };
+  if (!r) return payload;
+  await r.set(SESSION_PLAYERS_KEY_PREFIX + sessionKey, payload, {
+    ex: SESSION_PLAYERS_TTL_SECONDS,
+  });
+  return payload;
 }
 
 export function isStateConfigured(): boolean {

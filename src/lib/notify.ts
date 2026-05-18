@@ -171,7 +171,28 @@ export type CancellationReminder = {
   court: string;
   venue: string;
   hoursUntil: number;
+  players: string[];
+  maxPlayers: number;
 };
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function playersTextLine(r: CancellationReminder): string {
+  const count = r.players.length;
+  const open = r.maxPlayers - count;
+  if (count === 0) {
+    return `Players: none yet (${r.maxPlayers} spots open)`;
+  }
+  const names = r.players.join(", ");
+  if (open <= 0) return `Players: ${names}`;
+  return `Players: ${names} (${count}/${r.maxPlayers} — ${open} spot${open === 1 ? "" : "s"} open)`;
+}
 
 export async function sendCancellationReminderEmail(
   reminders: CancellationReminder[],
@@ -187,15 +208,22 @@ export async function sendCancellationReminderEmail(
       : `${reminders.length} bookings approaching 24h cancellation cutoff`;
 
   const rows = reminders
-    .map(
-      (r) =>
-        `<tr><td>${r.weekday}</td><td>${r.date}</td><td>${r.startTime}</td><td>${r.court}</td><td>${r.venue}</td></tr>`,
-    )
+    .map((r) => {
+      const count = r.players.length;
+      const open = r.maxPlayers - count;
+      const playersCell =
+        count === 0
+          ? `<em>none yet (${r.maxPlayers} spots open)</em>`
+          : open > 0
+            ? `${escapeHtml(r.players.join(", "))} <em>(${count}/${r.maxPlayers} — ${open} spot${open === 1 ? "" : "s"} open)</em>`
+            : escapeHtml(r.players.join(", "));
+      return `<tr><td>${escapeHtml(r.weekday)}</td><td>${escapeHtml(r.date)}</td><td>${escapeHtml(r.startTime)}</td><td>${escapeHtml(r.court)}</td><td>${escapeHtml(r.venue)}</td><td>${playersCell}</td></tr>`;
+    })
     .join("");
   const html = `
     <p>The free cancellation window (24h) is closing soon for:</p>
     <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:sans-serif;font-size:14px">
-      <thead><tr><th>Day</th><th>Date</th><th>Time</th><th>Court</th><th>Venue</th></tr></thead>
+      <thead><tr><th>Day</th><th>Date</th><th>Time</th><th>Court</th><th>Venue</th><th>Players</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
     <p>If anyone can't make it, let the group know now so the booking can be cancelled for free.</p>
@@ -203,7 +231,7 @@ export async function sendCancellationReminderEmail(
   const text = reminders
     .map(
       (r) =>
-        `${r.weekday} ${r.date} ${r.startTime} — ${r.court} (${r.venue})`,
+        `${r.weekday} ${r.date} ${r.startTime} — ${r.court} (${r.venue}) — ${playersTextLine(r)}`,
     )
     .join("\n");
 
@@ -226,7 +254,7 @@ export async function sendCancellationReminderWhatsApp(
   const lines = reminders
     .map(
       (r) =>
-        `• ${formatSlotDate(r.weekday, r.date)} ${r.startTime} - ${r.court}`,
+        `• ${formatSlotDate(r.weekday, r.date)} ${r.startTime} - ${r.court}\n   ${playersTextLine(r)}`,
     )
     .join("\n");
 
