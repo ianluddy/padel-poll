@@ -17,7 +17,9 @@ export default function SessionPlayerPicker({
   roster,
   maxPlayers,
 }: Props) {
-  const [selected, setSelected] = useState<string[]>(initialPlayers);
+  const [selected, setSelected] = useState<string[]>(() =>
+    roster.filter((n) => initialPlayers.includes(n)),
+  );
   const [expanded, setExpanded] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
