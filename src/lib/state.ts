@@ -5,6 +5,7 @@ import type { UserSession } from "./padelAccount";
 const SNAPSHOT_KEY = "padel:lastSnapshot";
 const AVAILABILITY_KEY_PREFIX = "padel:availability:";
 const USER_SESSIONS_KEY = "padel:userSessions";
+const REMINDED_SESSIONS_KEY = "padel:remindedSessions";
 
 export type Snapshot = {
   ts: string;
@@ -87,6 +88,24 @@ export async function saveUserSessions(
   const r = getRedis();
   if (!r) return;
   await r.set(USER_SESSIONS_KEY, cached);
+}
+
+export type RemindedSessions = {
+  keys: string[];
+};
+
+export async function loadRemindedSessions(): Promise<RemindedSessions | null> {
+  const r = getRedis();
+  if (!r) return null;
+  return (await r.get<RemindedSessions>(REMINDED_SESSIONS_KEY)) ?? null;
+}
+
+export async function saveRemindedSessions(
+  reminded: RemindedSessions,
+): Promise<void> {
+  const r = getRedis();
+  if (!r) return;
+  await r.set(REMINDED_SESSIONS_KEY, reminded);
 }
 
 export function isStateConfigured(): boolean {
