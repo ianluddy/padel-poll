@@ -9,22 +9,21 @@ import {
   isStateConfigured,
   loadRemindedSessions,
   saveRemindedSessions,
+  loadSessionPlayers,
 } from "@/lib/state";
+import { MAX_PLAYERS } from "@/lib/players";
 import {
   sendCancellationReminderEmail,
   sendCancellationReminderWhatsApp,
   type CancellationReminder,
 } from "@/lib/notify";
+import { buildSessionKey } from "@/lib/sessions";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const REMINDER_WINDOW_MIN_HOURS = 24;
 const REMINDER_WINDOW_MAX_HOURS = 30;
-
-function sessionKey(session: UserSession): string {
-  return `${session.venue}|${session.date}|${session.startTime}|${session.court}`;
-}
 
 function parseDublinLocalToUtc(date: string, time: string): Date | null {
   const [dd, mm, yyyy] = date.split("/").map(Number);
@@ -102,30 +101,46 @@ async function processCancellationReminders(sessions: UserSession[]): Promise<{
   const minMs = REMINDER_WINDOW_MIN_HOURS * 3_600_000;
   const maxMs = REMINDER_WINDOW_MAX_HOURS * 3_600_000;
 
-  const currentKeys = new Set(sessions.map(sessionKey));
+  const currentKeys = new Set(sessions.map(buildSessionKey));
   const stored = await loadRemindedSessions();
   const alreadyReminded = new Set(
     (stored?.keys ?? []).filter((k) => currentKeys.has(k)),
   );
 
-  const due: CancellationReminder[] = [];
+  type PendingReminder = {
+    key: string;
+    base: Omit<CancellationReminder, "players" | "maxPlayers">;
+  };
+  const pending: PendingReminder[] = [];
   for (const s of sessions) {
-    const key = sessionKey(s);
+    const key = buildSessionKey(s);
     if (alreadyReminded.has(key)) continue;
     const start = parseDublinLocalToUtc(s.date, s.startTime);
     if (!start) continue;
     const delta = start.getTime() - now;
     if (delta > minMs && delta <= maxMs) {
-      due.push({
-        weekday: dublinWeekday(start),
-        date: s.date,
-        startTime: s.startTime,
-        court: s.court,
-        venue: s.venue,
-        hoursUntil: Math.round(delta / 3_600_000),
+      pending.push({
+        key,
+        base: {
+          weekday: dublinWeekday(start),
+          date: s.date,
+          startTime: s.startTime,
+          court: s.court,
+          venue: s.venue,
+          hoursUntil: Math.round(delta / 3_600_000),
+        },
       });
     }
   }
+
+  const playerLists = await Promise.all(
+    pending.map((p) => loadSessionPlayers(p.key).catch(() => null)),
+  );
+  const due: CancellationReminder[] = pending.map((p, i) => ({
+    ...p.base,
+    players: playerLists[i] ?? [],
+    maxPlayers: MAX_PLAYERS,
+  }));
 
   let email: { sent: boolean; reason?: string } = {
     sent: false,

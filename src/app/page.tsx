@@ -1,4 +1,11 @@
-import { loadAvailability, loadUserSessions } from "@/lib/state";
+import {
+  loadAvailability,
+  loadSessionPlayersMany,
+  loadUserSessions,
+} from "@/lib/state";
+import { MAX_PLAYERS, PLAYERS } from "@/lib/players";
+import { buildSessionKey } from "@/lib/sessions";
+import SessionPlayerPicker from "@/components/SessionPlayerPicker";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -138,6 +145,15 @@ export default async function Home() {
   const hasSessions =
     userSessions && userSessions.sessions && userSessions.sessions.length > 0;
 
+  const sessionKeys: string[] = hasSessions
+    ? userSessions!.sessions.map(buildSessionKey)
+    : [];
+  const playersByKey: Record<string, string[]> = hasSessions
+    ? await loadSessionPlayersMany(sessionKeys).catch(
+        () => ({}) as Record<string, string[]>,
+      )
+    : {};
+
   return (
     <main>
       <h1>Padel Poll</h1>
@@ -149,6 +165,8 @@ export default async function Home() {
             <tbody>
               {userSessions!.sessions.map((s, i) => {
                 const detail = s.court || "—";
+                const key = sessionKeys[i];
+                const initialPlayers = playersByKey[key] ?? [];
                 return (
                   <tr key={`${s.date}-${s.startTime}-${i}`}>
                     <td>{formatSessionDate(s.date)}</td>
@@ -161,6 +179,14 @@ export default async function Home() {
                       >
                         {detail}
                       </a>
+                    </td>
+                    <td>
+                      <SessionPlayerPicker
+                        sessionKey={key}
+                        initialPlayers={initialPlayers}
+                        roster={PLAYERS}
+                        maxPlayers={MAX_PLAYERS}
+                      />
                     </td>
                   </tr>
                 );
