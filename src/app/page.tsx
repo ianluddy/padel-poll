@@ -5,7 +5,7 @@ import {
 } from "@/lib/state";
 import { MAX_PLAYERS, PLAYERS } from "@/lib/players";
 import { buildSessionKey } from "@/lib/sessions";
-import SessionPlayerPicker from "@/components/SessionPlayerPicker";
+import SessionRow from "@/components/SessionRow";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -164,31 +164,19 @@ export default async function Home() {
           <table>
             <tbody>
               {userSessions!.sessions.map((s, i) => {
-                const detail = s.court || "—";
                 const key = sessionKeys[i];
-                const initialPlayers = playersByKey[key] ?? [];
                 return (
-                  <tr key={`${s.date}-${s.startTime}-${i}`}>
-                    <td>{formatSessionDate(s.date)}</td>
-                    <td>{s.startTime}</td>
-                    <td>
-                      <a
-                        href={s.bookingUrl ?? INTRANET_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {detail}
-                      </a>
-                    </td>
-                    <td>
-                      <SessionPlayerPicker
-                        sessionKey={key}
-                        initialPlayers={initialPlayers}
-                        roster={PLAYERS}
-                        maxPlayers={MAX_PLAYERS}
-                      />
-                    </td>
-                  </tr>
+                  <SessionRow
+                    key={`${s.date}-${s.startTime}-${i}`}
+                    dateLabel={formatSessionDate(s.date)}
+                    startTime={s.startTime}
+                    court={s.court || "—"}
+                    bookingUrl={s.bookingUrl ?? INTRANET_URL}
+                    sessionKey={key}
+                    initialPlayers={playersByKey[key] ?? []}
+                    roster={PLAYERS}
+                    maxPlayers={MAX_PLAYERS}
+                  />
                 );
               })}
             </tbody>

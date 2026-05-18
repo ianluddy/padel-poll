@@ -228,10 +228,27 @@ a.court-chip.available:hover {
   vertical-align: top;
 }
 
-.player-picker {
-  position: relative;
-  display: inline-block;
-  text-align: left;
+.session-row {
+  cursor: pointer;
+}
+
+.session-row:hover td,
+.session-row:focus-visible td {
+  background: rgba(59, 130, 246, 0.06);
+}
+
+.session-row:focus-visible {
+  outline: none;
+}
+
+.session-row.expanded td {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.session-row-expansion td {
+  padding: 10px 12px 14px;
+  background: rgba(20, 24, 29, 0.6);
+  border-top: 1px solid var(--border);
 }
 
 .players-pill {
@@ -245,12 +262,7 @@ a.court-chip.available:hover {
   border: 1px solid var(--border);
   background: var(--panel);
   color: var(--text);
-  cursor: pointer;
   font-family: inherit;
-}
-
-.players-pill:hover {
-  border-color: var(--accent);
 }
 
 .players-pill.full {
@@ -274,29 +286,21 @@ a.court-chip.available:hover {
   line-height: 1;
 }
 
-.player-picker-panel {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 10px;
-  min-width: 160px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-}
-
 .player-picker-list {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 16px;
+  justify-content: center;
+  max-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .player-picker-list li {
   margin: 0;
-  padding: 2px 0;
 }
 
 .player-picker-list label {
@@ -305,6 +309,7 @@ a.court-chip.available:hover {
   gap: 8px;
   font-size: 13px;
   cursor: pointer;
+  padding: 2px 0;
 }
 
 .player-picker-list label.disabled {
@@ -322,10 +327,11 @@ a.court-chip.available:hover {
 }
 
 .player-picker-status {
-  margin-top: 6px;
+  margin-top: 8px;
   font-size: 11px;
   min-height: 14px;
   color: var(--muted);
+  text-align: center;
 }
 
 .player-picker-status.status-saved {
