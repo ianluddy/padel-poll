@@ -6,6 +6,7 @@ export const PLAYERS: readonly string[] = [
   "Alan",
   "Owen",
   "Darren",
+  "Dave",
 ] as const;
 
 export const MAX_PLAYERS = 4;
