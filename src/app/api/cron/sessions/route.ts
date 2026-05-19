@@ -10,6 +10,9 @@ import {
   loadRemindedSessions,
   saveRemindedSessions,
   loadSessionPlayers,
+  loadSessionPlayersMany,
+  loadCalendarSyncedKeys,
+  saveCalendarSyncedKeys,
 } from "@/lib/state";
 import { MAX_PLAYERS } from "@/lib/players";
 import {
@@ -18,6 +21,10 @@ import {
   type CancellationReminder,
 } from "@/lib/notify";
 import { buildSessionKey } from "@/lib/sessions";
+import {
+  syncSessionsToCalendar,
+  type CalendarSyncResult,
+} from "@/lib/googleCalendar";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -71,6 +78,7 @@ export async function GET(request: Request) {
     await saveUserSessions({ checkedAt, sessions });
 
     const reminderResult = await processCancellationReminders(sessions);
+    const calendarResult = await processCalendarSync(sessions);
 
     const summary = {
       ok: true,
@@ -78,6 +86,7 @@ export async function GET(request: Request) {
       count: sessions.length,
       stateConfigured: isStateConfigured(),
       reminders: reminderResult,
+      calendar: calendarResult,
       ...(rawSnippet ? { rawSnippet } : {}),
     };
     console.log("[padel-poll:sessions]", JSON.stringify(summary));
@@ -181,4 +190,33 @@ async function processCancellationReminders(sessions: UserSession[]): Promise<{
   await saveRemindedSessions({ keys: Array.from(alreadyReminded) });
 
   return { sent: due.length, email, whatsapp };
+}
+
+async function processCalendarSync(
+  sessions: UserSession[],
+): Promise<CalendarSyncResult> {
+  try {
+    const previousKeys = await loadCalendarSyncedKeys();
+    const sessionKeys = sessions.map(buildSessionKey);
+    const playersByKey = await loadSessionPlayersMany(sessionKeys);
+    const { result, syncedKeys } = await syncSessionsToCalendar(
+      sessions,
+      previousKeys,
+      playersByKey,
+    );
+    if (result.configured) {
+      await saveCalendarSyncedKeys(syncedKeys);
+    }
+    return result;
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    return {
+      configured: true,
+      created: 0,
+      updated: 0,
+      deleted: 0,
+      skipped: 0,
+      failed: [{ reason }],
+    };
+  }
 }

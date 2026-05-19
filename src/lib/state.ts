@@ -8,6 +8,7 @@ const USER_SESSIONS_KEY = "padel:userSessions";
 const REMINDED_SESSIONS_KEY = "padel:remindedSessions";
 const SESSION_PLAYERS_KEY_PREFIX = "padel:sessionPlayers:";
 const SESSION_PLAYERS_TTL_SECONDS = 60 * 24 * 60 * 60;
+const CALENDAR_SYNCED_KEYS_KEY = "padel:calendarSyncedKeys";
 
 export type Snapshot = {
   ts: string;
@@ -156,6 +157,28 @@ export async function saveSessionPlayers(
     ex: SESSION_PLAYERS_TTL_SECONDS,
   });
   return payload;
+}
+
+export type CalendarSyncedKeys = {
+  keys: string[];
+  updatedAt: string;
+};
+
+export async function loadCalendarSyncedKeys(): Promise<string[]> {
+  const r = getRedis();
+  if (!r) return [];
+  const stored = await r.get<CalendarSyncedKeys>(CALENDAR_SYNCED_KEYS_KEY);
+  return stored?.keys ?? [];
+}
+
+export async function saveCalendarSyncedKeys(keys: string[]): Promise<void> {
+  const r = getRedis();
+  if (!r) return;
+  const payload: CalendarSyncedKeys = {
+    keys,
+    updatedAt: new Date().toISOString(),
+  };
+  await r.set(CALENDAR_SYNCED_KEYS_KEY, payload);
 }
 
 export function isStateConfigured(): boolean {

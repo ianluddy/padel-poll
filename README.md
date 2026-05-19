@@ -35,6 +35,18 @@ The first run after deploy seeds state without sending an email. Subsequent runs
 
 If any per-date fetch fails or the session can't be established, the cron sends a separate failure email and **does not** update the snapshot — so a partial run won't manufacture spurious "new opening" notifications on the next successful run.
 
+## Google Calendar sync
+
+`/api/cron/sessions` (hourly) mirrors your upcoming Project Padel bookings into a Google Calendar. Cancelled bookings are removed on the next run. Sync is skipped if the Google env vars aren't set, so this is opt-in.
+
+Required env vars:
+
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` — OAuth 2.0 client (Google Cloud Console → APIs & Services → Credentials, with Calendar API enabled).
+- `GOOGLE_REFRESH_TOKEN` — obtained by running the OAuth flow once against the scope `https://www.googleapis.com/auth/calendar.events` (the Google OAuth Playground works for this).
+- `GOOGLE_CALENDAR_ID` — optional. Defaults to `primary`. Use the calendar address (e.g. `abcd@group.calendar.google.com`) to target a non-primary calendar.
+
+Events use a deterministic ID derived from `venue|date|startTime|court`, so reruns are idempotent. The cron's response includes a `calendar` block reporting `{ created, updated, deleted, failed }`.
+
 ### Provisioning on Vercel
 
 1. **Resend**: sign up, create an API key, add `RESEND_API_KEY` and `EMAIL_TO` to Vercel project env.
