@@ -89,6 +89,7 @@ td {
 td:first-child {
   font-weight: 600;
   color: var(--text);
+  text-align: left;
 }
 
 td:last-child {
