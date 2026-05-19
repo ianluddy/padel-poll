@@ -161,26 +161,24 @@ export default async function Home() {
       {hasSessions ? (
         <section className="sessions">
           <h2 className="sessions-heading">My Upcoming Sessions</h2>
-          <table>
-            <tbody>
-              {userSessions!.sessions.map((s, i) => {
-                const key = sessionKeys[i];
-                return (
-                  <SessionRow
-                    key={`${s.date}-${s.startTime}-${i}`}
-                    dateLabel={formatSessionDate(s.date)}
-                    startTime={s.startTime}
-                    court={s.court || "—"}
-                    bookingUrl={s.bookingUrl ?? INTRANET_URL}
-                    sessionKey={key}
-                    initialPlayers={playersByKey[key] ?? []}
-                    roster={PLAYERS}
-                    maxPlayers={MAX_PLAYERS}
-                  />
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="session-cards">
+            {userSessions!.sessions.map((s, i) => {
+              const key = sessionKeys[i];
+              return (
+                <SessionRow
+                  key={`${s.date}-${s.startTime}-${i}`}
+                  dateLabel={formatSessionDate(s.date)}
+                  startTime={s.startTime}
+                  court={s.court || "—"}
+                  bookingUrl={s.bookingUrl ?? INTRANET_URL}
+                  sessionKey={key}
+                  initialPlayers={playersByKey[key] ?? []}
+                  roster={PLAYERS}
+                  maxPlayers={MAX_PLAYERS}
+                />
+              );
+            })}
+          </div>
         </section>
       ) : null}
     </main>

@@ -70,7 +70,7 @@ export default function SessionRow({
     setExpanded((v) => !v);
   }
 
-  function onRowKeyDown(e: React.KeyboardEvent<HTMLTableRowElement>) {
+  function onHeaderKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       toggleExpanded();
@@ -82,19 +82,22 @@ export default function SessionRow({
   const pillClass = `players-pill ${full ? "full" : count > 0 ? "partial" : "empty"}`;
 
   return (
-    <>
-      <tr
-        className={`session-row ${expanded ? "expanded" : ""}`}
+    <article className={`session-card ${expanded ? "expanded" : ""}`}>
+      <div
+        className="session-card-header"
         onClick={toggleExpanded}
-        onKeyDown={onRowKeyDown}
+        onKeyDown={onHeaderKeyDown}
         role="button"
         tabIndex={0}
         aria-expanded={expanded}
       >
-        <td>{dateLabel}</td>
-        <td>{startTime}</td>
-        <td>
+        <div className="session-card-primary">
+          <span className="session-card-date">{dateLabel}</span>
+          <span className="session-card-time">{startTime}</span>
+        </div>
+        <div className="session-card-meta">
           <a
+            className="session-card-court"
             href={bookingUrl}
             target="_blank"
             rel="noopener noreferrer"
@@ -102,44 +105,40 @@ export default function SessionRow({
           >
             {court}
           </a>
-        </td>
-        <td>
           <span className={pillClass}>
             {count}/{maxPlayers}
             <span className="player-picker-caret">{expanded ? "▴" : "▾"}</span>
           </span>
-        </td>
-      </tr>
+        </div>
+      </div>
       {expanded ? (
-        <tr className="session-row-expansion">
-          <td colSpan={4}>
-            <ul className="player-picker-list">
-              {roster.map((name) => {
-                const checked = selected.includes(name);
-                const disabled = !checked && full;
-                return (
-                  <li key={name}>
-                    <label className={disabled ? "disabled" : ""}>
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        disabled={disabled}
-                        onChange={() => toggle(name)}
-                      />
-                      <span>{name}</span>
-                    </label>
-                  </li>
-                );
-              })}
-            </ul>
-            <div className={`player-picker-status status-${saveState}`}>
-              {saveState === "saving" ? "Saving…" : null}
-              {saveState === "saved" ? "Saved" : null}
-              {saveState === "error" ? `Error: ${errorMessage}` : null}
-            </div>
-          </td>
-        </tr>
+        <div className="session-card-body">
+          <ul className="player-picker-list">
+            {roster.map((name) => {
+              const checked = selected.includes(name);
+              const disabled = !checked && full;
+              return (
+                <li key={name}>
+                  <label className={disabled ? "disabled" : ""}>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={disabled}
+                      onChange={() => toggle(name)}
+                    />
+                    <span>{name}</span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+          <div className={`player-picker-status status-${saveState}`}>
+            {saveState === "saving" ? "Saving…" : null}
+            {saveState === "saved" ? "Saved" : null}
+            {saveState === "error" ? `Error: ${errorMessage}` : null}
+          </div>
+        </div>
       ) : null}
-    </>
+    </article>
   );
 }
