@@ -5,15 +5,21 @@ import {
   saveSnapshot,
   saveAvailability,
   isStateConfigured,
+  loadUserSessions,
+  loadSessionPlayersMany,
 } from "@/lib/state";
 import {
   sendOpeningEmail,
   sendFailureEmail,
   sendOpeningWhatsApp,
   sendFailureWhatsApp,
+  sendUpcomingSessionsWhatsApp,
   type SlotOpening,
   type CronFailure,
+  type UpcomingSessionSummary,
 } from "@/lib/notify";
+import { buildSessionKey } from "@/lib/sessions";
+import { MAX_PLAYERS } from "@/lib/players";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -30,6 +36,46 @@ function isWithinNotifyWindow(now: Date): boolean {
     minutesGmt1 >= NOTIFY_WINDOW_START_MIN &&
     minutesGmt1 <= NOTIFY_WINDOW_END_MIN
   );
+}
+
+function parseDublinSessionDate(date: string): Date | null {
+  const [dd, mm, yyyy] = date.split("/").map(Number);
+  if (!dd || !mm || !yyyy) return null;
+  return new Date(Date.UTC(yyyy, mm - 1, dd, 12));
+}
+
+function sessionWeekday(date: string): string {
+  const d = parseDublinSessionDate(date);
+  if (!d) return "";
+  return new Intl.DateTimeFormat("en-IE", {
+    timeZone: "Europe/Dublin",
+    weekday: "short",
+  }).format(d);
+}
+
+async function sendUpcomingSummary(): Promise<{
+  sent: boolean;
+  reason?: string;
+  count: number;
+}> {
+  const cached = await loadUserSessions();
+  const sessions = cached?.sessions ?? [];
+  if (sessions.length === 0) {
+    return { sent: false, count: 0, reason: "no upcoming sessions cached" };
+  }
+  const keys = sessions.map(buildSessionKey);
+  const playerMap = await loadSessionPlayersMany(keys);
+  const summaries: UpcomingSessionSummary[] = sessions.map((s) => ({
+    weekday: sessionWeekday(s.date),
+    date: s.date,
+    startTime: s.startTime,
+    court: s.court,
+    venue: s.venue,
+    players: playerMap[buildSessionKey(s)] ?? [],
+    maxPlayers: MAX_PLAYERS,
+  }));
+  const result = await sendUpcomingSessionsWhatsApp(summaries);
+  return { ...result, count: summaries.length };
 }
 
 export async function GET(request: Request) {
@@ -94,6 +140,10 @@ export async function GET(request: Request) {
     count: 0,
   };
   let openingWhatsApp: { sent: boolean; reason?: string; count: number } = {
+    sent: false,
+    count: 0,
+  };
+  let summaryWhatsApp: { sent: boolean; reason?: string; count: number } = {
     sent: false,
     count: 0,
   };
@@ -167,6 +217,18 @@ export async function GET(request: Request) {
         ]);
         openingNotification = { ...emailResult, count: reopened.length };
         openingWhatsApp = { ...waResult, count: reopened.length };
+
+        if (waResult.sent) {
+          try {
+            summaryWhatsApp = await sendUpcomingSummary();
+          } catch (err) {
+            summaryWhatsApp = {
+              sent: false,
+              count: 0,
+              reason: err instanceof Error ? err.message : String(err),
+            };
+          }
+        }
       }
     }
 
@@ -184,6 +246,7 @@ export async function GET(request: Request) {
     failures,
     openingNotification,
     openingWhatsApp,
+    summaryWhatsApp,
     failureNotification,
     failureWhatsApp,
   };
