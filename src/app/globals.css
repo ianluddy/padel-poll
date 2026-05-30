@@ -34,7 +34,7 @@ a {
 main {
   max-width: 880px;
   margin: 0 auto;
-  padding: 32px 20px 16px;
+  padding: 32px 20px 0;
   text-align: center;
 }
 
@@ -152,7 +152,7 @@ a.court-chip.available:hover {
   }
 
   main {
-    padding: 24px 8px 16px;
+    padding: 24px 8px 0;
   }
 
   td {
@@ -406,6 +406,7 @@ a.court-chip.available:hover {
   align-items: center;
   gap: 4px;
   margin-top: 16px;
+  padding-bottom: 24px;
 }
 
 .notify-btn {
