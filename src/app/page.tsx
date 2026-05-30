@@ -6,6 +6,7 @@ import {
 import { MAX_PLAYERS, PLAYERS } from "@/lib/players";
 import { buildSessionKey } from "@/lib/sessions";
 import SessionRow from "@/components/SessionRow";
+import NotifyButton from "@/components/NotifyButton";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -160,7 +161,10 @@ export default async function Home() {
       {body}
       {hasSessions ? (
         <section className="sessions">
-          <h2 className="sessions-heading">My Upcoming Sessions</h2>
+          <div className="sessions-heading-row">
+            <h2 className="sessions-heading">My Upcoming Sessions</h2>
+            <NotifyButton />
+          </div>
           <div className="session-cards">
             {userSessions!.sessions.map((s, i) => {
               const key = sessionKeys[i];
