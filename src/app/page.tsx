@@ -161,10 +161,7 @@ export default async function Home() {
       {body}
       {hasSessions ? (
         <section className="sessions">
-          <div className="sessions-heading-row">
-            <h2 className="sessions-heading">My Upcoming Sessions</h2>
-            <NotifyButton />
-          </div>
+          <h2 className="sessions-heading">My Upcoming Sessions</h2>
           <div className="session-cards">
             {userSessions!.sessions.map((s, i) => {
               const key = sessionKeys[i];
@@ -183,6 +180,7 @@ export default async function Home() {
               );
             })}
           </div>
+          <NotifyButton />
         </section>
       ) : null}
     </main>
