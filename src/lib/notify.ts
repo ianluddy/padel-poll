@@ -286,8 +286,8 @@ export async function sendCancellationReminderWhatsApp(
 
   const heading =
     reminders.length === 1
-      ? `⏰ Free cancellation closes soon for this booking:`
-      : `⏰ Free cancellation closes soon for these ${reminders.length} bookings:`;
+      ? `Booking reminder:`
+      : `Booking reminders:`;
 
   const lines = reminders
     .map((r) => {
@@ -299,7 +299,7 @@ export async function sendCancellationReminderWhatsApp(
     })
     .join("\n");
 
-  const body = `${heading}\n${lines}\n\nLet us know if you can't make it`;
+  const body = `${heading}\n${lines}`;
 
   for (const recipient of whapiRecipients(to)) {
     await sendWhapiText(baseUrl, token, recipient, body);
