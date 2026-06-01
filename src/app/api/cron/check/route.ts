@@ -12,7 +12,6 @@ import {
   sendOpeningEmail,
   sendFailureEmail,
   sendOpeningWhatsApp,
-  sendFailureWhatsApp,
   sendUpcomingSessionsWhatsApp,
   type SlotOpening,
   type CronFailure,
@@ -148,7 +147,6 @@ export async function GET(request: Request) {
     count: 0,
   };
   let failureNotification: { sent: boolean; reason?: string } = { sent: false };
-  let failureWhatsApp: { sent: boolean; reason?: string } = { sent: false };
 
   const settle = async <T>(
     promise: Promise<T>,
@@ -164,12 +162,7 @@ export async function GET(request: Request) {
   };
 
   if (failures.length > 0) {
-    const [emailResult, waResult] = await Promise.all([
-      settle(sendFailureEmail(failures)),
-      settle(sendFailureWhatsApp(failures)),
-    ]);
-    failureNotification = emailResult;
-    failureWhatsApp = waResult;
+    failureNotification = await settle(sendFailureEmail(failures));
     openingNotification = {
       sent: false,
       count: 0,
@@ -248,7 +241,6 @@ export async function GET(request: Request) {
     openingWhatsApp,
     summaryWhatsApp,
     failureNotification,
-    failureWhatsApp,
   };
   console.log("[padel-poll]", JSON.stringify(summary));
   return NextResponse.json(summary);

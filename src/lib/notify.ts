@@ -331,19 +331,3 @@ export async function sendFailureEmail(
   await resend.emails.send({ from, to, subject, html, text });
   return { sent: true };
 }
-
-export async function sendFailureWhatsApp(
-  failures: CronFailure[],
-): Promise<{ sent: boolean; reason?: string }> {
-  const { token, to, baseUrl } = getWhapiEnv();
-  if (!token) return { sent: false, reason: "WHAPI_TOKEN not set" };
-  if (!to) return { sent: false, reason: "WHAPI_TO not set" };
-
-  const lines = failures.map((f) => `• ${f.stage}: ${f.detail}`).join("\n");
-  const body = `Padel Poll cron failed (${failures.length})\n\n${lines}`;
-
-  for (const recipient of whapiRecipients(to)) {
-    await sendWhapiText(baseUrl, token, recipient, body);
-  }
-  return { sent: true };
-}
