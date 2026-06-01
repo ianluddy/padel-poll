@@ -290,10 +290,13 @@ export async function sendCancellationReminderWhatsApp(
       : `⏰ Free cancellation closes soon for these ${reminders.length} bookings:`;
 
   const lines = reminders
-    .map(
-      (r) =>
-        `• ${formatSlotDate(r.weekday, r.date)} ${r.startTime} - ${r.court}\n   ${playersTextLine(r)}`,
-    )
+    .map((r) => {
+      const slots: string[] = [];
+      for (let i = 0; i < r.maxPlayers; i++) {
+        slots.push(r.players[i] ?? "[Slot available]");
+      }
+      return `• ${formatSlotDate(r.weekday, r.date)} ${r.startTime} - ${r.court}\n   ${slots.join(", ")}`;
+    })
     .join("\n");
 
   const body = `${heading}\n${lines}\n\nLet us know if you can't make it`;
