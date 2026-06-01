@@ -6,7 +6,6 @@ import {
 import { MAX_PLAYERS, PLAYERS } from "@/lib/players";
 import { buildSessionKey } from "@/lib/sessions";
 import SessionRow from "@/components/SessionRow";
-import NotifyButton from "@/components/NotifyButton";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -180,7 +179,6 @@ export default async function Home() {
               );
             })}
           </div>
-          <NotifyButton />
         </section>
       ) : null}
     </main>

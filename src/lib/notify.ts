@@ -202,44 +202,6 @@ export async function sendUpcomingSessionsWhatsApp(
   return { sent: true };
 }
 
-export async function sendFillBookingWhatsApp(
-  sessions: UpcomingSessionSummary[],
-): Promise<{ sent: boolean; reason?: string }> {
-  const { token, to, baseUrl } = getWhapiEnv();
-  if (!token) return { sent: false, reason: "WHAPI_TOKEN not set" };
-  if (!to) return { sent: false, reason: "WHAPI_TO not set" };
-  if (sessions.length === 0) {
-    return { sent: false, reason: "no upcoming sessions" };
-  }
-
-  const openCount = sessions.reduce(
-    (sum, s) => sum + Math.max(0, s.maxPlayers - s.players.length),
-    0,
-  );
-
-  const heading =
-    openCount === 1
-      ? `🎾 Padel — 1 spot available, can you play?`
-      : `🎾 Padel — ${openCount} spots available, can you play?`;
-
-  const lines = sessions
-    .map((s) => {
-      const slots: string[] = [];
-      for (let i = 0; i < s.maxPlayers; i++) {
-        slots.push(s.players[i] ?? "[Slot available]");
-      }
-      return `• ${formatSlotDate(s.weekday, s.date)} ${s.startTime} - ${s.court}\n   ${slots.join(", ")}`;
-    })
-    .join("\n");
-
-  const body = `${heading}\n\n${lines}\n\nhttps://padel-poll.vercel.app/`;
-
-  for (const recipient of whapiRecipients(to)) {
-    await sendWhapiText(baseUrl, token, recipient, body);
-  }
-  return { sent: true };
-}
-
 export type CancellationReminder = {
   weekday: string;
   date: string;
