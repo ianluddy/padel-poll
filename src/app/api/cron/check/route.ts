@@ -6,7 +6,9 @@ import {
   saveAvailability,
   isStateConfigured,
   loadUserSessions,
+  saveUserSessions,
 } from "@/lib/state";
+import { fetchUpcomingSessions } from "@/lib/padelAccount";
 import {
   sendOpeningEmail,
   sendFailureEmail,
@@ -87,6 +89,18 @@ export async function GET(request: Request) {
     };
     console.log("[padel-poll]", JSON.stringify(summary));
     return NextResponse.json(summary);
+  }
+
+  let sessionsRefreshed = false;
+  try {
+    const { sessions } = await fetchUpcomingSessions();
+    await saveUserSessions({ checkedAt: new Date().toISOString(), sessions });
+    sessionsRefreshed = true;
+  } catch (err) {
+    console.error(
+      "[padel-poll:check] session refresh failed",
+      err instanceof Error ? err.message : String(err),
+    );
   }
 
   const venues = Object.keys(VENUES) as VenueKey[];
@@ -231,6 +245,7 @@ export async function GET(request: Request) {
   const summary = {
     checkedAt: new Date().toISOString(),
     stateConfigured: isStateConfigured(),
+    sessionsRefreshed,
     currentOpenings: currentOpenings.length,
     failures,
     openingNotification,
