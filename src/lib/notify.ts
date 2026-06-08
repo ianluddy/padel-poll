@@ -1,4 +1,6 @@
 import { Resend } from "resend";
+import { loadSessionPlayersMany } from "@/lib/state";
+import { buildSessionKey } from "@/lib/sessions";
 
 export type SlotOpening = {
   venue: string;
@@ -170,7 +172,6 @@ export type UpcomingSessionSummary = {
   startTime: string;
   court: string;
   venue: string;
-  players: string[];
   maxPlayers: number;
 };
 
@@ -184,11 +185,15 @@ export async function sendUpcomingSessionsWhatsApp(
     return { sent: false, reason: "no upcoming sessions" };
   }
 
+  const sessionKeys = sessions.map(buildSessionKey);
+  const playerMap = await loadSessionPlayersMany(sessionKeys);
+
   const lines = sessions
-    .map((s) => {
+    .map((s, i) => {
+      const players = playerMap[sessionKeys[i]] ?? [];
       const slots: string[] = [];
       for (let i = 0; i < s.maxPlayers; i++) {
-        slots.push(s.players[i] ?? "[Slot available]");
+        slots.push(players[i] ?? "[Slot available]");
       }
       return `• ${formatSlotDate(s.weekday, s.date)} ${s.startTime} - ${s.court}\n   ${slots.join(", ")}`;
     })

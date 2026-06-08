@@ -6,7 +6,6 @@ import {
   saveAvailability,
   isStateConfigured,
   loadUserSessions,
-  loadSessionPlayersMany,
 } from "@/lib/state";
 import {
   sendOpeningEmail,
@@ -62,15 +61,12 @@ async function sendUpcomingSummary(): Promise<{
   if (sessions.length === 0) {
     return { sent: false, count: 0, reason: "no upcoming sessions cached" };
   }
-  const keys = sessions.map(buildSessionKey);
-  const playerMap = await loadSessionPlayersMany(keys);
   const summaries: UpcomingSessionSummary[] = sessions.map((s) => ({
     weekday: sessionWeekday(s.date),
     date: s.date,
     startTime: s.startTime,
     court: s.court,
     venue: s.venue,
-    players: playerMap[buildSessionKey(s)] ?? [],
     maxPlayers: MAX_PLAYERS,
   }));
   const result = await sendUpcomingSessionsWhatsApp(summaries);
