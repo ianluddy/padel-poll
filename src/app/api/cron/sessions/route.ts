@@ -6,6 +6,7 @@ import {
 } from "@/lib/padelAccount";
 import {
   saveUserSessions,
+  loadUserSessions,
   isStateConfigured,
   loadRemindedSessions,
   saveRemindedSessions,
@@ -15,7 +16,10 @@ import { MAX_PLAYERS } from "@/lib/players";
 import {
   sendCancellationReminderEmail,
   sendCancellationReminderWhatsApp,
+  sendSessionBookedWhatsApp,
+  sendSessionCancelledWhatsApp,
   type CancellationReminder,
+  type SessionChangeNotice,
 } from "@/lib/notify";
 import { buildSessionKey } from "@/lib/sessions";
 
@@ -67,8 +71,13 @@ export async function GET(request: Request) {
 
   const checkedAt = new Date().toISOString();
   try {
+    const previousData = await loadUserSessions();
     const { sessions, rawSnippet } = await fetchUpcomingSessions();
     await saveUserSessions({ checkedAt, sessions });
+
+    const changeResult = previousData
+      ? await processSessionChanges(previousData.sessions, sessions)
+      : { booked: { sent: false, reason: "first run" }, cancelled: { sent: false, reason: "first run" } };
 
     const reminderResult = await processCancellationReminders(sessions);
 
@@ -77,6 +86,8 @@ export async function GET(request: Request) {
       checkedAt,
       count: sessions.length,
       stateConfigured: isStateConfigured(),
+      booked: changeResult.booked,
+      cancelled: changeResult.cancelled,
       reminders: reminderResult,
       ...(rawSnippet ? { rawSnippet } : {}),
     };
@@ -90,6 +101,55 @@ export async function GET(request: Request) {
     console.error("[padel-poll:sessions]", JSON.stringify(summary));
     return NextResponse.json(summary, { status });
   }
+}
+
+async function processSessionChanges(
+  previous: UserSession[],
+  current: UserSession[],
+): Promise<{
+  booked: { sent: boolean; reason?: string };
+  cancelled: { sent: boolean; reason?: string };
+}> {
+  const previousKeys = new Set(previous.map(buildSessionKey));
+  const currentKeys = new Set(current.map(buildSessionKey));
+
+  const booked = current.filter((s) => !previousKeys.has(buildSessionKey(s)));
+  const cancelled = previous.filter((s) => !currentKeys.has(buildSessionKey(s)));
+
+  const toNotice = (s: UserSession): SessionChangeNotice => {
+    const start = parseDublinLocalToUtc(s.date, s.startTime);
+    return {
+      weekday: start ? dublinWeekday(start) : "",
+      date: s.date,
+      startTime: s.startTime,
+      court: s.court,
+      venue: s.venue,
+    };
+  };
+
+  const settle = async (
+    p: Promise<{ sent: boolean; reason?: string }>,
+  ): Promise<{ sent: boolean; reason?: string }> => {
+    try {
+      return await p;
+    } catch (err) {
+      return {
+        sent: false,
+        reason: err instanceof Error ? err.message : String(err),
+      };
+    }
+  };
+
+  const [bookedResult, cancelledResult] = await Promise.all([
+    booked.length > 0
+      ? settle(sendSessionBookedWhatsApp(booked.map(toNotice)))
+      : Promise.resolve({ sent: false, reason: "no new sessions" }),
+    cancelled.length > 0
+      ? settle(sendSessionCancelledWhatsApp(cancelled.map(toNotice)))
+      : Promise.resolve({ sent: false, reason: "no cancelled sessions" }),
+  ]);
+
+  return { booked: bookedResult, cancelled: cancelledResult };
 }
 
 async function processCancellationReminders(sessions: UserSession[]): Promise<{
