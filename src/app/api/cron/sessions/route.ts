@@ -124,6 +124,7 @@ async function processSessionChanges(
       startTime: s.startTime,
       court: s.court,
       venue: s.venue,
+      maxPlayers: MAX_PLAYERS,
     };
   };
 

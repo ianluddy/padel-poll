@@ -318,6 +318,7 @@ export type SessionChangeNotice = {
   startTime: string;
   court: string;
   venue: string;
+  maxPlayers: number;
 };
 
 export async function sendSessionBookedWhatsApp(
@@ -327,9 +328,19 @@ export async function sendSessionBookedWhatsApp(
   if (!token) return { sent: false, reason: "WHAPI_TOKEN not set" };
   if (!to) return { sent: false, reason: "WHAPI_TO not set" };
 
+  const sessionKeys = sessions.map(buildSessionKey);
+  const playerMap = await loadSessionPlayersMany(sessionKeys);
+
   const heading = sessions.length === 1 ? "Session booked:" : "Sessions booked:";
   const lines = sessions
-    .map((s) => `• ${formatSlotDate(s.weekday, s.date)} ${s.startTime} - ${s.court}`)
+    .map((s, i) => {
+      const players = playerMap[sessionKeys[i]] ?? [];
+      const slots: string[] = [];
+      for (let j = 0; j < s.maxPlayers; j++) {
+        slots.push(players[j] ?? "[Slot available]");
+      }
+      return `• ${formatSlotDate(s.weekday, s.date)} ${s.startTime} - ${s.court}\n   ${slots.join(", ")}`;
+    })
     .join("\n");
 
   for (const recipient of whapiRecipients(to)) {
