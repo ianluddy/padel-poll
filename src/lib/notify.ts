@@ -312,6 +312,91 @@ export async function sendCancellationReminderWhatsApp(
   return { sent: true };
 }
 
+export type SessionChangeNotice = {
+  weekday: string;
+  date: string;
+  startTime: string;
+  court: string;
+  venue: string;
+  maxPlayers: number;
+};
+
+export async function sendSessionBookedWhatsApp(
+  sessions: SessionChangeNotice[],
+): Promise<{ sent: boolean; reason?: string }> {
+  const { token, to, baseUrl } = getWhapiEnv();
+  if (!token) return { sent: false, reason: "WHAPI_TOKEN not set" };
+  if (!to) return { sent: false, reason: "WHAPI_TO not set" };
+
+  const sessionKeys = sessions.map(buildSessionKey);
+  const playerMap = await loadSessionPlayersMany(sessionKeys);
+
+  const heading = sessions.length === 1 ? "Session booked:" : "Sessions booked:";
+  const lines = sessions
+    .map((s, i) => {
+      const players = playerMap[sessionKeys[i]] ?? [];
+      const slots: string[] = [];
+      for (let j = 0; j < s.maxPlayers; j++) {
+        slots.push(players[j] ?? "[Slot available]");
+      }
+      return `• ${formatSlotDate(s.weekday, s.date)} ${s.startTime} - ${s.court}\n   ${slots.join(", ")}`;
+    })
+    .join("\n");
+
+  for (const recipient of whapiRecipients(to)) {
+    await sendWhapiText(baseUrl, token, recipient, `${heading}\n${lines}`);
+  }
+  return { sent: true };
+}
+
+export type PlayerUpdateNotice = {
+  playerName: string;
+  action: "IN" | "OUT";
+  weekday: string;
+  date: string;
+  startTime: string;
+  court: string;
+  players: string[];
+  maxPlayers: number;
+};
+
+export async function sendPlayerUpdateWhatsApp(
+  notice: PlayerUpdateNotice,
+): Promise<{ sent: boolean; reason?: string }> {
+  const { token, to, baseUrl } = getWhapiEnv();
+  if (!token) return { sent: false, reason: "WHAPI_TOKEN not set" };
+  if (!to) return { sent: false, reason: "WHAPI_TO not set" };
+
+  const slots: string[] = [];
+  for (let i = 0; i < notice.maxPlayers; i++) {
+    slots.push(notice.players[i] ?? "[Slot available]");
+  }
+  const body = `${notice.playerName} is ${notice.action}\n\n${formatSlotDate(notice.weekday, notice.date)} ${notice.startTime} - ${notice.court}\n${slots.join(", ")}`;
+
+  for (const recipient of whapiRecipients(to)) {
+    await sendWhapiText(baseUrl, token, recipient, body);
+  }
+  return { sent: true };
+}
+
+export async function sendSessionCancelledWhatsApp(
+  sessions: SessionChangeNotice[],
+): Promise<{ sent: boolean; reason?: string }> {
+  const { token, to, baseUrl } = getWhapiEnv();
+  if (!token) return { sent: false, reason: "WHAPI_TOKEN not set" };
+  if (!to) return { sent: false, reason: "WHAPI_TO not set" };
+
+  const heading = sessions.length === 1 ? "Session cancelled:" : "Sessions cancelled:";
+  const lines = sessions
+    .map((s) => `• ${formatSlotDate(s.weekday, s.date)} ${s.startTime} - ${s.court}`)
+    .join("\n");
+
+  for (const recipient of whapiRecipients(to)) {
+    await sendWhapiText(baseUrl, token, recipient, `${heading}\n${lines}`);
+  }
+  return { sent: true };
+}
+
 export async function sendFailureEmail(
   failures: CronFailure[],
 ): Promise<{ sent: boolean; reason?: string }> {

@@ -1,10 +1,21 @@
 import { NextResponse } from "next/server";
 import { MAX_PLAYERS, PLAYERS, isKnownPlayer } from "@/lib/players";
-import { saveSessionPlayers } from "@/lib/state";
+import { saveSessionPlayers, loadSessionPlayers } from "@/lib/state";
+import { sendPlayerUpdateWhatsApp } from "@/lib/notify";
 
 export const dynamic = "force-dynamic";
 
 const MAX_SESSION_KEY_LENGTH = 200;
+
+function sessionWeekday(date: string): string {
+  const [dd, mm, yyyy] = date.split("/").map(Number);
+  if (!dd || !mm || !yyyy) return "";
+  const d = new Date(Date.UTC(yyyy, mm - 1, dd, 12));
+  return new Intl.DateTimeFormat("en-IE", {
+    timeZone: "Europe/Dublin",
+    weekday: "short",
+  }).format(d);
+}
 
 type Body = {
   sessionKey?: unknown;
@@ -51,7 +62,29 @@ export async function POST(request: Request) {
 
   const sorted = [...PLAYERS].filter((name) => players.includes(name));
 
+  const previous = await loadSessionPlayers(sessionKey);
   const saved = await saveSessionPlayers(sessionKey, sorted);
+
+  const previousSet = new Set(previous ?? []);
+  const currentSet = new Set(saved.players);
+  const added = saved.players.find((p) => !previousSet.has(p));
+  const removed = (previous ?? []).find((p) => !currentSet.has(p));
+  const changed = added ?? removed;
+
+  if (changed) {
+    const [, date, startTime, court] = sessionKey.split("|");
+    await sendPlayerUpdateWhatsApp({
+      playerName: changed,
+      action: added ? "IN" : "OUT",
+      weekday: sessionWeekday(date),
+      date,
+      startTime,
+      court,
+      players: saved.players,
+      maxPlayers: MAX_PLAYERS,
+    }).catch(() => {});
+  }
+
   return NextResponse.json({
     ok: true,
     players: saved.players,

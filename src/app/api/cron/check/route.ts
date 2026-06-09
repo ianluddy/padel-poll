@@ -1,20 +1,35 @@
 import { NextResponse } from "next/server";
 import { getAvailability, VENUES, type VenueKey } from "@/lib/padel";
 import {
+  fetchUpcomingSessions,
+  PadelAccountError,
+  type UserSession,
+} from "@/lib/padelAccount";
+import {
   loadSnapshot,
   saveSnapshot,
   saveAvailability,
   isStateConfigured,
   loadUserSessions,
+  saveUserSessions,
+  loadRemindedSessions,
+  saveRemindedSessions,
+  loadSessionPlayers,
 } from "@/lib/state";
 import {
   sendOpeningEmail,
   sendFailureEmail,
   sendOpeningWhatsApp,
   sendUpcomingSessionsWhatsApp,
+  sendCancellationReminderEmail,
+  sendCancellationReminderWhatsApp,
+  sendSessionBookedWhatsApp,
+  sendSessionCancelledWhatsApp,
   type SlotOpening,
   type CronFailure,
   type UpcomingSessionSummary,
+  type CancellationReminder,
+  type SessionChangeNotice,
 } from "@/lib/notify";
 import { buildSessionKey } from "@/lib/sessions";
 import { MAX_PLAYERS } from "@/lib/players";
@@ -24,8 +39,11 @@ export const maxDuration = 60;
 
 type KeyedOpening = SlotOpening & { key: string };
 
-const NOTIFY_WINDOW_START_MIN = 7 * 60 + 10;
-const NOTIFY_WINDOW_END_MIN = 22 * 60 + 40;
+const NOTIFY_WINDOW_START_MIN = 8 * 60;
+const NOTIFY_WINDOW_END_MIN = 21 * 60 + 30;
+
+const REMINDER_WINDOW_MIN_HOURS = 24;
+const REMINDER_WINDOW_MAX_HOURS = 30;
 
 function isWithinNotifyWindow(now: Date): boolean {
   const minutesGmt1 =
@@ -34,6 +52,39 @@ function isWithinNotifyWindow(now: Date): boolean {
     minutesGmt1 >= NOTIFY_WINDOW_START_MIN &&
     minutesGmt1 <= NOTIFY_WINDOW_END_MIN
   );
+}
+
+function parseDublinLocalToUtc(date: string, time: string): Date | null {
+  const [dd, mm, yyyy] = date.split("/").map(Number);
+  const [hh, mi] = time.split(":").map(Number);
+  if (!dd || !mm || !yyyy || Number.isNaN(hh) || Number.isNaN(mi)) return null;
+  const asIfUtc = Date.UTC(yyyy, mm - 1, dd, hh, mi);
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Dublin",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date(asIfUtc));
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
+  const dublinAsUtc = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour") === 24 ? 0 : get("hour"),
+    get("minute"),
+  );
+  const offset = dublinAsUtc - asIfUtc;
+  return new Date(asIfUtc - offset);
+}
+
+function dublinWeekday(d: Date): string {
+  return new Intl.DateTimeFormat("en-IE", {
+    timeZone: "Europe/Dublin",
+    weekday: "short",
+  }).format(d);
 }
 
 function parseDublinSessionDate(date: string): Date | null {
@@ -83,12 +134,76 @@ export async function GET(request: Request) {
   if (!isWithinNotifyWindow(new Date())) {
     const summary = {
       checkedAt: new Date().toISOString(),
-      skipped: "outside notify window (07:10–22:40 GMT+1)",
+      skipped: "outside notify window (08:00–21:30 GMT+1)",
     };
     console.log("[padel-poll]", JSON.stringify(summary));
     return NextResponse.json(summary);
   }
 
+  const settle = async <T>(
+    promise: Promise<T>,
+  ): Promise<T | { sent: false; reason: string }> => {
+    try {
+      return await promise;
+    } catch (err) {
+      return {
+        sent: false,
+        reason: err instanceof Error ? err.message : String(err),
+      };
+    }
+  };
+
+  // --- Sessions: refresh, change notifications, cancellation reminders ---
+  type SessionsResult = {
+    refreshed: boolean;
+    booked: { sent: boolean; reason?: string };
+    cancelled: { sent: boolean; reason?: string };
+    reminders: {
+      sent: number;
+      email: { sent: boolean; reason?: string };
+      whatsapp: { sent: boolean; reason?: string };
+    };
+    error?: string;
+  };
+
+  let sessionsResult: SessionsResult = {
+    refreshed: false,
+    booked: { sent: false, reason: "not run" },
+    cancelled: { sent: false, reason: "not run" },
+    reminders: {
+      sent: 0,
+      email: { sent: false, reason: "not run" },
+      whatsapp: { sent: false, reason: "not run" },
+    },
+  };
+
+  try {
+    const previousData = await loadUserSessions();
+    const { sessions } = await fetchUpcomingSessions();
+    await saveUserSessions({ checkedAt: new Date().toISOString(), sessions });
+
+    const changeResult = previousData
+      ? await processSessionChanges(previousData.sessions, sessions)
+      : {
+          booked: { sent: false, reason: "first run" },
+          cancelled: { sent: false, reason: "first run" },
+        };
+
+    const reminderResult = await processCancellationReminders(sessions);
+
+    sessionsResult = {
+      refreshed: true,
+      booked: changeResult.booked,
+      cancelled: changeResult.cancelled,
+      reminders: reminderResult,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[padel-poll:check] session refresh failed", message);
+    sessionsResult = { ...sessionsResult, error: message };
+  }
+
+  // --- Availability: fetch, snapshot diff, slot-opening notifications ---
   const venues = Object.keys(VENUES) as VenueKey[];
   const failures: CronFailure[] = [];
   const currentOpenings: KeyedOpening[] = [];
@@ -130,10 +245,8 @@ export async function GET(request: Request) {
     }
   }
 
-  let openingNotification: { sent: boolean; reason?: string; count: number } = {
-    sent: false,
-    count: 0,
-  };
+  let openingNotification: { sent: boolean; reason?: string; count: number } =
+    { sent: false, count: 0 };
   let openingWhatsApp: { sent: boolean; reason?: string; count: number } = {
     sent: false,
     count: 0,
@@ -143,19 +256,6 @@ export async function GET(request: Request) {
     count: 0,
   };
   let failureNotification: { sent: boolean; reason?: string } = { sent: false };
-
-  const settle = async <T>(
-    promise: Promise<T>,
-  ): Promise<T | { sent: false; reason: string }> => {
-    try {
-      return await promise;
-    } catch (err) {
-      return {
-        sent: false,
-        reason: err instanceof Error ? err.message : String(err),
-      };
-    }
-  };
 
   if (failures.length > 0) {
     failureNotification = await settle(sendFailureEmail(failures));
@@ -231,6 +331,7 @@ export async function GET(request: Request) {
   const summary = {
     checkedAt: new Date().toISOString(),
     stateConfigured: isStateConfigured(),
+    sessions: sessionsResult,
     currentOpenings: currentOpenings.length,
     failures,
     openingNotification,
@@ -240,4 +341,143 @@ export async function GET(request: Request) {
   };
   console.log("[padel-poll]", JSON.stringify(summary));
   return NextResponse.json(summary);
+}
+
+async function processSessionChanges(
+  previous: UserSession[],
+  current: UserSession[],
+): Promise<{
+  booked: { sent: boolean; reason?: string };
+  cancelled: { sent: boolean; reason?: string };
+}> {
+  const previousKeys = new Set(previous.map(buildSessionKey));
+  const currentKeys = new Set(current.map(buildSessionKey));
+
+  const booked = current.filter((s) => !previousKeys.has(buildSessionKey(s)));
+  const cancelled = previous.filter((s) => !currentKeys.has(buildSessionKey(s)));
+
+  const toNotice = (s: UserSession): SessionChangeNotice => {
+    const start = parseDublinLocalToUtc(s.date, s.startTime);
+    return {
+      weekday: start ? dublinWeekday(start) : "",
+      date: s.date,
+      startTime: s.startTime,
+      court: s.court,
+      venue: s.venue,
+      maxPlayers: MAX_PLAYERS,
+    };
+  };
+
+  const settle = async (
+    p: Promise<{ sent: boolean; reason?: string }>,
+  ): Promise<{ sent: boolean; reason?: string }> => {
+    try {
+      return await p;
+    } catch (err) {
+      return {
+        sent: false,
+        reason: err instanceof Error ? err.message : String(err),
+      };
+    }
+  };
+
+  const [bookedResult, cancelledResult] = await Promise.all([
+    booked.length > 0
+      ? settle(sendSessionBookedWhatsApp(booked.map(toNotice)))
+      : Promise.resolve({ sent: false, reason: "no new sessions" }),
+    cancelled.length > 0
+      ? settle(sendSessionCancelledWhatsApp(cancelled.map(toNotice)))
+      : Promise.resolve({ sent: false, reason: "no cancelled sessions" }),
+  ]);
+
+  return { booked: bookedResult, cancelled: cancelledResult };
+}
+
+async function processCancellationReminders(sessions: UserSession[]): Promise<{
+  sent: number;
+  email: { sent: boolean; reason?: string };
+  whatsapp: { sent: boolean; reason?: string };
+}> {
+  const now = Date.now();
+  const minMs = REMINDER_WINDOW_MIN_HOURS * 3_600_000;
+  const maxMs = REMINDER_WINDOW_MAX_HOURS * 3_600_000;
+
+  const currentKeys = new Set(sessions.map(buildSessionKey));
+  const stored = await loadRemindedSessions();
+  const alreadyReminded = new Set(
+    (stored?.keys ?? []).filter((k) => currentKeys.has(k)),
+  );
+
+  type PendingReminder = {
+    key: string;
+    base: Omit<CancellationReminder, "players" | "maxPlayers">;
+  };
+  const pending: PendingReminder[] = [];
+  for (const s of sessions) {
+    const key = buildSessionKey(s);
+    if (alreadyReminded.has(key)) continue;
+    const start = parseDublinLocalToUtc(s.date, s.startTime);
+    if (!start) continue;
+    const delta = start.getTime() - now;
+    if (delta > minMs && delta <= maxMs) {
+      pending.push({
+        key,
+        base: {
+          weekday: dublinWeekday(start),
+          date: s.date,
+          startTime: s.startTime,
+          court: s.court,
+          venue: s.venue,
+          hoursUntil: Math.round(delta / 3_600_000),
+        },
+      });
+    }
+  }
+
+  const playerLists = await Promise.all(
+    pending.map((p) => loadSessionPlayers(p.key).catch(() => null)),
+  );
+  const due: CancellationReminder[] = pending.map((p, i) => ({
+    ...p.base,
+    players: playerLists[i] ?? [],
+    maxPlayers: MAX_PLAYERS,
+  }));
+
+  let email: { sent: boolean; reason?: string } = {
+    sent: false,
+    reason: "no reminders due",
+  };
+  let whatsapp: { sent: boolean; reason?: string } = {
+    sent: false,
+    reason: "no reminders due",
+  };
+
+  if (due.length > 0) {
+    const settle = async (
+      p: Promise<{ sent: boolean; reason?: string }>,
+    ): Promise<{ sent: boolean; reason?: string }> => {
+      try {
+        return await p;
+      } catch (err) {
+        return {
+          sent: false,
+          reason: err instanceof Error ? err.message : String(err),
+        };
+      }
+    };
+    [email, whatsapp] = await Promise.all([
+      settle(sendCancellationReminderEmail(due)),
+      settle(sendCancellationReminderWhatsApp(due)),
+    ]);
+
+    if (email.sent || whatsapp.sent) {
+      for (const r of due) {
+        alreadyReminded.add(`${r.venue}|${r.date}|${r.startTime}|${r.court}`);
+      }
+    }
+  }
+
+  await saveRemindedSessions({ keys: Array.from(alreadyReminded) });
+
+  return { sent: due.length, email, whatsapp };
 }
