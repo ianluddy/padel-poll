@@ -350,6 +350,8 @@ export async function sendSessionBookedWhatsApp(
 }
 
 export type PlayerUpdateNotice = {
+  playerName: string;
+  action: "IN" | "OUT";
   weekday: string;
   date: string;
   startTime: string;
@@ -369,7 +371,7 @@ export async function sendPlayerUpdateWhatsApp(
   for (let i = 0; i < notice.maxPlayers; i++) {
     slots.push(notice.players[i] ?? "[Slot available]");
   }
-  const body = `Players updated:\n• ${formatSlotDate(notice.weekday, notice.date)} ${notice.startTime} - ${notice.court}\n   ${slots.join(", ")}`;
+  const body = `${notice.playerName} is ${notice.action}\n\n${formatSlotDate(notice.weekday, notice.date)} ${notice.startTime} - ${notice.court}\n${slots.join(", ")}`;
 
   for (const recipient of whapiRecipients(to)) {
     await sendWhapiText(baseUrl, token, recipient, body);
