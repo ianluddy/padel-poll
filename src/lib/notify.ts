@@ -369,7 +369,7 @@ export async function sendPlayerUpdateWhatsApp(
 
   const slots: string[] = [];
   for (let i = 0; i < notice.maxPlayers; i++) {
-    slots.push(notice.players[i] ?? "[Slot available]");
+    slots.push(notice.players[i] ? `🎾 ${notice.players[i]}` : "[Slot available]");
   }
   const body = `${notice.playerName} is ${notice.action}\n\n${formatSlotDate(notice.weekday, notice.date)} ${notice.startTime} - ${notice.court}\n${slots.join(", ")}`;
 
