@@ -344,7 +344,7 @@ export async function sendSessionBookedWhatsApp(
     .join("\n");
 
   for (const recipient of whapiRecipients(to)) {
-    await sendWhapiText(baseUrl, token, recipient, `${heading}\n${lines}`);
+    await sendWhapiText(baseUrl, token, recipient, `${heading}\n${lines}\n\nhttps://padel-poll.vercel.app/`);
   }
   return { sent: true };
 }
