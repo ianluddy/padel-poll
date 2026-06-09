@@ -349,6 +349,34 @@ export async function sendSessionBookedWhatsApp(
   return { sent: true };
 }
 
+export type PlayerUpdateNotice = {
+  weekday: string;
+  date: string;
+  startTime: string;
+  court: string;
+  players: string[];
+  maxPlayers: number;
+};
+
+export async function sendPlayerUpdateWhatsApp(
+  notice: PlayerUpdateNotice,
+): Promise<{ sent: boolean; reason?: string }> {
+  const { token, to, baseUrl } = getWhapiEnv();
+  if (!token) return { sent: false, reason: "WHAPI_TOKEN not set" };
+  if (!to) return { sent: false, reason: "WHAPI_TO not set" };
+
+  const slots: string[] = [];
+  for (let i = 0; i < notice.maxPlayers; i++) {
+    slots.push(notice.players[i] ?? "[Slot available]");
+  }
+  const body = `Players updated:\n• ${formatSlotDate(notice.weekday, notice.date)} ${notice.startTime} - ${notice.court}\n   ${slots.join(", ")}`;
+
+  for (const recipient of whapiRecipients(to)) {
+    await sendWhapiText(baseUrl, token, recipient, body);
+  }
+  return { sent: true };
+}
+
 export async function sendSessionCancelledWhatsApp(
   sessions: SessionChangeNotice[],
 ): Promise<{ sent: boolean; reason?: string }> {
