@@ -195,7 +195,7 @@ export async function sendUpcomingSessionsWhatsApp(
       for (let i = 0; i < s.maxPlayers; i++) {
         slots.push(players[i] ?? "[Slot available]");
       }
-      return `• ${formatSlotDate(s.weekday, s.date)} ${s.startTime} - ${s.court}\n   ${slots.join(", ")}`;
+      return `• ${formatSlotDate(s.weekday, s.date)} ${s.startTime} - ${s.court}\n   ${slots.join("\n   ")}`;
     })
     .join("\n");
 
@@ -339,7 +339,7 @@ export async function sendSessionBookedWhatsApp(
       for (let j = 0; j < s.maxPlayers; j++) {
         slots.push(players[j] ?? "[Slot available]");
       }
-      return `• ${formatSlotDate(s.weekday, s.date)} ${s.startTime} - ${s.court}\n   ${slots.join(", ")}`;
+      return `• ${formatSlotDate(s.weekday, s.date)} ${s.startTime} - ${s.court}\n   ${slots.join("\n   ")}`;
     })
     .join("\n");
 
@@ -371,7 +371,7 @@ export async function sendPlayerUpdateWhatsApp(
   for (let i = 0; i < notice.maxPlayers; i++) {
     slots.push(notice.players[i] ? `${notice.players[i]} 🎾` : "[Slot available]");
   }
-  const body = `${notice.playerName} is ${notice.action}\n\n${formatSlotDate(notice.weekday, notice.date)} ${notice.startTime} - ${notice.court}\n${slots.join(", ")}`;
+  const body = `${notice.playerName} is ${notice.action}\n\n${formatSlotDate(notice.weekday, notice.date)} ${notice.startTime} - ${notice.court}\n${slots.join("\n")}`;
 
   for (const recipient of whapiRecipients(to)) {
     await sendWhapiText(baseUrl, token, recipient, body);
