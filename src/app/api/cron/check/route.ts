@@ -177,9 +177,12 @@ export async function GET(request: Request) {
     },
   };
 
+  let upcomingSessions: UserSession[] = [];
+
   try {
     const previousData = await loadUserSessions();
     const { sessions } = await fetchUpcomingSessions();
+    upcomingSessions = sessions;
     await saveUserSessions({ checkedAt: new Date().toISOString(), sessions });
 
     const changeResult = previousData
@@ -279,8 +282,12 @@ export async function GET(request: Request) {
     } else {
       const previousSeen = new Set(previous.seen);
       const previousOpen = new Set(previous.open);
+      const bookedDates = new Set(upcomingSessions.map((s) => s.date.slice(0, 5)));
       const reopened = currentOpenings.filter(
-        (o) => previousSeen.has(o.key) && !previousOpen.has(o.key),
+        (o) =>
+          previousSeen.has(o.key) &&
+          !previousOpen.has(o.key) &&
+          !bookedDates.has(o.date),
       );
       if (reopened.length > 0) {
         const grouped = new Map<string, SlotOpening>();
