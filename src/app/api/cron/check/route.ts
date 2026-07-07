@@ -359,9 +359,12 @@ async function processSessionChanges(
 }> {
   const previousKeys = new Set(previous.map(buildSessionKey));
   const currentKeys = new Set(current.map(buildSessionKey));
+  const currentDates = new Set(current.map((s) => s.date));
 
   const booked = current.filter((s) => !previousKeys.has(buildSessionKey(s)));
-  const cancelled = previous.filter((s) => !currentKeys.has(buildSessionKey(s)));
+  const cancelled = previous.filter(
+    (s) => !currentKeys.has(buildSessionKey(s)) && !currentDates.has(s.date),
+  );
 
   const toNotice = (s: UserSession): SessionChangeNotice => {
     const start = parseDublinLocalToUtc(s.date, s.startTime);
