@@ -298,9 +298,9 @@ export async function sendCancellationReminderWhatsApp(
     .map((r) => {
       const slots: string[] = [];
       for (let i = 0; i < r.maxPlayers; i++) {
-        slots.push(r.players[i] ?? "[Slot available]");
+        slots.push(r.players[i] ? `${r.players[i]} 🎾` : "[Slot available]");
       }
-      return `• ${formatSlotDate(r.weekday, r.date)} ${r.startTime} - ${r.court}\n   ${slots.join(", ")}`;
+      return `• ${formatSlotDate(r.weekday, r.date)} ${r.startTime} - ${r.court}\n   ${slots.join("\n   ")}`;
     })
     .join("\n");
 
