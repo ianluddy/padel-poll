@@ -87,6 +87,18 @@ function dublinWeekday(d: Date): string {
   }).format(d);
 }
 
+function isSunday2pmDublin(now: Date): boolean {
+  const parts = new Intl.DateTimeFormat("en-IE", {
+    timeZone: "Europe/Dublin",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value;
+  return get("weekday") === "Sun" && get("hour") === "14" && Number(get("minute")) < 30;
+}
+
 function parseDublinSessionDate(date: string): Date | null {
   const [dd, mm, yyyy] = date.split("/").map(Number);
   if (!dd || !mm || !yyyy) return null;
@@ -257,6 +269,7 @@ export async function GET(request: Request) {
   let summaryWhatsApp: { sent: boolean; reason?: string; count: number } = {
     sent: false,
     count: 0,
+    reason: "not scheduled (Sun 14:00 Dublin)",
   };
   let failureNotification: { sent: boolean; reason?: string } = { sent: false };
 
@@ -313,18 +326,6 @@ export async function GET(request: Request) {
         ]);
         openingNotification = { ...emailResult, count: reopened.length };
         openingWhatsApp = { ...waResult, count: reopened.length };
-
-        if (waResult.sent) {
-          try {
-            summaryWhatsApp = await sendUpcomingSummary();
-          } catch (err) {
-            summaryWhatsApp = {
-              sent: false,
-              count: 0,
-              reason: err instanceof Error ? err.message : String(err),
-            };
-          }
-        }
       }
     }
 
@@ -333,6 +334,18 @@ export async function GET(request: Request) {
       seen: currentSeen,
       open: currentOpenings.map((o) => o.key),
     });
+  }
+
+  if (isSunday2pmDublin(new Date())) {
+    try {
+      summaryWhatsApp = await sendUpcomingSummary();
+    } catch (err) {
+      summaryWhatsApp = {
+        sent: false,
+        count: 0,
+        reason: err instanceof Error ? err.message : String(err),
+      };
+    }
   }
 
   const summary = {

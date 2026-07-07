@@ -193,7 +193,7 @@ export async function sendUpcomingSessionsWhatsApp(
       const players = playerMap[sessionKeys[i]] ?? [];
       const slots: string[] = [];
       for (let i = 0; i < s.maxPlayers; i++) {
-        slots.push(players[i] ?? "[Slot available]");
+        slots.push(players[i] ? `${players[i]} 🎾` : "[Slot available]");
       }
       return `• ${formatSlotDate(s.weekday, s.date)} ${s.startTime} - ${s.court}\n   ${slots.join("\n   ")}`;
     })
