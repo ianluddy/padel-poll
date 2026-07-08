@@ -18,9 +18,7 @@ export default function CalendarLink({ url }: { url: string }) {
 
   return (
     <div className="calendar-link">
-      <p className="calendar-link-hint">
-        Subscribe in Google Calendar: Settings → Add calendar → From URL
-      </p>
+      <p className="calendar-link-hint">Subscribe in Google Calendar</p>
       <div className="calendar-link-row">
         <input
           type="text"
