@@ -172,7 +172,7 @@ export default async function Home() {
       {body}
       {hasSessions ? (
         <section className="sessions">
-          <h2 className="sessions-heading">My Upcoming Sessions</h2>
+          <h2 className="sessions-heading">Upcoming Sessions</h2>
           <CalendarLink url={getCalendarFeedUrl()} />
           <div className="session-cards">
             {userSessions!.sessions.map((s, i) => {
