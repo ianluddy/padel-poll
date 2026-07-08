@@ -68,6 +68,7 @@ function getCalendarFeedUrl(): string {
 export default async function Home() {
   const userSessions = await loadUserSessions().catch(() => null);
   let body: React.ReactNode;
+  let checkedAt: string | null = null;
   try {
     const cached = await loadAvailability("galway");
     if (!cached) {
@@ -77,7 +78,8 @@ export default async function Home() {
         </div>
       );
     } else {
-      const { data, checkedAt } = cached;
+      const { data } = cached;
+      checkedAt = cached.checkedAt;
       body = (
         <>
           <p className="subtitle">
@@ -139,9 +141,6 @@ export default async function Home() {
               ))}
             </tbody>
           </table>
-          <p className="meta">
-            Checked {formatCheckedAt(checkedAt)}
-          </p>
         </>
       );
     }
@@ -173,7 +172,6 @@ export default async function Home() {
       {hasSessions ? (
         <section className="sessions">
           <h2 className="sessions-heading">Upcoming Sessions</h2>
-          <CalendarLink url={getCalendarFeedUrl()} />
           <div className="session-cards">
             {userSessions!.sessions.map((s, i) => {
               const key = sessionKeys[i];
@@ -192,7 +190,11 @@ export default async function Home() {
               );
             })}
           </div>
+          <CalendarLink url={getCalendarFeedUrl()} />
         </section>
+      ) : null}
+      {checkedAt ? (
+        <p className="meta">Synced {formatCheckedAt(checkedAt)}</p>
       ) : null}
     </main>
   );

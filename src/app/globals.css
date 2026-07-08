@@ -213,14 +213,14 @@ a.court-chip.available:hover {
 
 .sessions-heading {
   margin: 0 0 12px;
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 600;
   color: var(--muted);
 }
 
 .calendar-link {
   max-width: 420px;
-  margin: 0 auto 16px;
+  margin: 16px auto 0;
 }
 
 .calendar-link-hint {
