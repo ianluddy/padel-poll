@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { loadUserSessions } from "@/lib/state";
+import { loadUserSessions, loadSessionPlayersMany } from "@/lib/state";
 import { parseDublinLocalToUtc } from "@/lib/dublinTime";
 import { buildSessionKey } from "@/lib/sessions";
+import { MAX_PLAYERS } from "@/lib/players";
 import type { UserSession } from "@/lib/padelAccount";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,40 @@ function icsEscape(value: string): string {
     .replace(/\n/g, "\\n");
 }
 
-function sessionToEvent(s: UserSession, now: Date): string | null {
+// RFC 5545 requires content lines to be folded at 75 octets, continuation
+// lines prefixed with a single space.
+function foldLine(line: string): string {
+  const encoder = new TextEncoder();
+  if (encoder.encode(line).length <= 75) return line;
+
+  const chunks: string[] = [];
+  let current = "";
+  for (const char of line) {
+    const candidate = current + char;
+    if (encoder.encode(candidate).length > 75 && current !== "") {
+      chunks.push(current);
+      current = char;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) chunks.push(current);
+  return chunks.map((c, i) => (i === 0 ? c : ` ${c}`)).join("\r\n");
+}
+
+function playersDescription(players: string[]): string {
+  const slots: string[] = [];
+  for (let i = 0; i < MAX_PLAYERS; i++) {
+    slots.push(players[i] ? `${players[i]} 🎾` : "[Slot available]");
+  }
+  return slots.join("\n");
+}
+
+async function sessionToEvent(
+  s: UserSession,
+  now: Date,
+  playerMap: Record<string, string[]>,
+): Promise<string | null> {
   const start = parseDublinLocalToUtc(s.date, s.startTime);
   const end = parseDublinLocalToUtc(s.date, s.endTime);
   if (!start || !end) return null;
@@ -26,6 +60,9 @@ function sessionToEvent(s: UserSession, now: Date): string | null {
   const uid = `${buildSessionKey(s)}@padel-poll.vercel.app`;
   const summary = icsEscape(`Padel — ${s.court}`);
   const location = icsEscape(s.venue);
+  const description = icsEscape(
+    playersDescription(playerMap[buildSessionKey(s)] ?? []),
+  );
 
   return [
     "BEGIN:VEVENT",
@@ -35,8 +72,11 @@ function sessionToEvent(s: UserSession, now: Date): string | null {
     `DTEND:${icsDate(end)}`,
     `SUMMARY:${summary}`,
     `LOCATION:${location}`,
+    `DESCRIPTION:${description}`,
     "END:VEVENT",
-  ].join("\r\n");
+  ]
+    .map(foldLine)
+    .join("\r\n");
 }
 
 export async function GET(request: Request) {
@@ -51,10 +91,11 @@ export async function GET(request: Request) {
   const cached = await loadUserSessions();
   const sessions = cached?.sessions ?? [];
   const now = new Date();
+  const playerMap = await loadSessionPlayersMany(sessions.map(buildSessionKey));
 
-  const events = sessions
-    .map((s) => sessionToEvent(s, now))
-    .filter((e): e is string => e !== null);
+  const events = (
+    await Promise.all(sessions.map((s) => sessionToEvent(s, now, playerMap)))
+  ).filter((e): e is string => e !== null);
 
   const calendar = [
     "BEGIN:VCALENDAR",

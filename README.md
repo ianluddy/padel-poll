@@ -45,6 +45,7 @@ If any per-date fetch fails or the session can't be established, the cron sends 
 
 `/api/calendar` serves an ICS feed built fresh on every request from the cached
 upcoming-sessions list, so a cancelled booking simply stops appearing in it.
+Each event's description lists the confirmed players (🎾) and any open slots.
 
 To subscribe: Google Calendar → Settings → **Add calendar** → **From URL**, and
 paste `https://<your-deployment>/api/calendar` (append `?token=...` if you set
