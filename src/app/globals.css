@@ -218,6 +218,56 @@ a.court-chip.available:hover {
   color: var(--muted);
 }
 
+.calendar-link {
+  max-width: 420px;
+  margin: 0 auto 16px;
+}
+
+.calendar-link-hint {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.calendar-link-row {
+  display: flex;
+  gap: 8px;
+}
+
+.calendar-link-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.calendar-link-row input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.calendar-link-row button {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.calendar-link-row button:hover {
+  border-color: var(--accent);
+}
+
 .session-cards {
   display: flex;
   flex-direction: column;

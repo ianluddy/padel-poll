@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import {
   loadAvailability,
   loadSessionPlayersMany,
@@ -6,6 +7,7 @@ import {
 import { MAX_PLAYERS, PLAYERS } from "@/lib/players";
 import { buildSessionKey } from "@/lib/sessions";
 import SessionRow from "@/components/SessionRow";
+import CalendarLink from "@/components/CalendarLink";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -52,6 +54,16 @@ function formatCheckedAt(iso: string): string {
 }
 
 const INTRANET_URL = "https://projectpadel.ie/Intranet/Index.aspx";
+
+function getCalendarFeedUrl(): string {
+  const h = headers();
+  const host = h.get("host") ?? "padel-poll.vercel.app";
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const url = new URL(`${proto}://${host}/api/calendar`);
+  const token = process.env.CALENDAR_FEED_TOKEN;
+  if (token) url.searchParams.set("token", token);
+  return url.toString();
+}
 
 export default async function Home() {
   const userSessions = await loadUserSessions().catch(() => null);
@@ -161,6 +173,7 @@ export default async function Home() {
       {hasSessions ? (
         <section className="sessions">
           <h2 className="sessions-heading">My Upcoming Sessions</h2>
+          <CalendarLink url={getCalendarFeedUrl()} />
           <div className="session-cards">
             {userSessions!.sessions.map((s, i) => {
               const key = sessionKeys[i];
