@@ -1,7 +1,7 @@
 :root {
-  /* Night-court palette: floodlit navy, chalk lines, optic-yellow ball,
+  /* Night-court palette: floodlit grass, chalk lines, optic-yellow ball,
      turf green / clay red for status. */
-  --bg: #0b1720;
+  --bg: #0f2417;
   --panel: #132531;
   --panel-raised: #172c39;
   --line: rgba(233, 241, 245, 0.1);
@@ -34,17 +34,18 @@ body {
 }
 
 body {
+  /* Mown-grass court: alternating light/dark stripes, like mower passes. */
   background-image: radial-gradient(
       ellipse 900px 420px at 50% -10%,
       rgba(211, 246, 90, 0.08),
       transparent 60%
     ),
     repeating-linear-gradient(
-      135deg,
-      rgba(233, 241, 245, 0.025) 0px,
-      rgba(233, 241, 245, 0.025) 1px,
-      transparent 1px,
-      transparent 34px
+      180deg,
+      rgba(255, 255, 255, 0.035) 0px,
+      rgba(255, 255, 255, 0.035) 46px,
+      rgba(0, 0, 0, 0.05) 46px,
+      rgba(0, 0, 0, 0.05) 92px
     );
   background-attachment: fixed;
 }
@@ -246,7 +247,7 @@ a.court-chip.available:hover {
   }
 
   main {
-    padding: 28px 12px 20px;
+    padding: 28px 20px 20px;
   }
 
   h1 {
