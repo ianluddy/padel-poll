@@ -167,7 +167,14 @@ export default async function Home() {
 
   return (
     <main>
-      <h1>Padel Poll</h1>
+      <div className="wordmark">
+        <h1>Padel Poll</h1>
+        <div className="court-rule" aria-hidden="true">
+          <span />
+          <span className="ball-dot" />
+          <span />
+        </div>
+      </div>
       {body}
       {hasSessions ? (
         <section className="sessions">
