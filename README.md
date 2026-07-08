@@ -19,6 +19,7 @@ Polls Project Padel Galway for available 8pm slots Mon–Thu for the next 21 day
 - `/` — server-rendered page.
 - `/api/availability?hour=20` — JSON.
 - `/api/cron/check` — invoked by Vercel cron. Logs availability summary; protected by `CRON_SECRET` if set.
+- `/api/calendar` — ICS feed of currently upcoming sessions, for subscribing from Google Calendar. Protected by `CALENDAR_FEED_TOKEN` (as a `?token=` query param) if set.
 
 ## Cron + email notifications
 
@@ -39,6 +40,17 @@ If any per-date fetch fails or the session can't be established, the cron sends 
 
 1. **Resend**: sign up, create an API key, add `RESEND_API_KEY` and `EMAIL_TO` to Vercel project env.
 2. **Redis**: in the Vercel dashboard, add the Upstash Redis integration (Storage → Marketplace) and link it to the project. Env vars are injected automatically.
+
+## Google Calendar sync
+
+`/api/calendar` serves an ICS feed built fresh on every request from the cached
+upcoming-sessions list, so a cancelled booking simply stops appearing in it.
+
+To subscribe: Google Calendar → Settings → **Add calendar** → **From URL**, and
+paste `https://<your-deployment>/api/calendar` (append `?token=...` if you set
+`CALENDAR_FEED_TOKEN`). Google only re-polls external ICS URLs every 12–24
+hours or so, so calendar updates (new bookings, cancellations) can lag behind
+the WhatsApp/email notifications by up to a day.
 
 ## Local dev
 
