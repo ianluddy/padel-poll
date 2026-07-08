@@ -1,12 +1,18 @@
 :root {
-  --bg: #0b0d10;
-  --panel: #14181d;
-  --border: #232a32;
-  --text: #e6e8eb;
-  --muted: #8a939c;
-  --green: #22c55e;
-  --red: #ef4444;
-  --accent: #3b82f6;
+  /* Night-court palette: floodlit grass, chalk lines, optic-yellow ball,
+     turf green / clay red for status. */
+  --bg: #0f2417;
+  --panel: #132531;
+  --panel-raised: #172c39;
+  --line: rgba(233, 241, 245, 0.1);
+  --line-strong: rgba(233, 241, 245, 0.2);
+  --chalk: #eef4f6;
+  --mist: #8599a4;
+  --ball: #d3f65a;
+  --ball-ink: #16240b;
+  --turf: #33c17a;
+  --clay: #e2593c;
+  --sky: #55b6e0;
 }
 
 * {
@@ -18,124 +24,214 @@ body {
   margin: 0;
   padding: 0;
   background: var(--bg);
-  color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif;
+  color: var(--chalk);
+  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
   font-size: 15px;
   line-height: 1.5;
   overflow-x: hidden;
+  font-variant-numeric: tabular-nums;
+}
+
+body {
+  /* Mown-grass court: alternating light/dark stripes, like mower passes. */
+  background-image: radial-gradient(
+      ellipse 900px 420px at 50% -10%,
+      rgba(211, 246, 90, 0.08),
+      transparent 60%
+    ),
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.035) 0px,
+      rgba(255, 255, 255, 0.035) 46px,
+      rgba(0, 0, 0, 0.05) 46px,
+      rgba(0, 0, 0, 0.05) 92px
+    );
+  background-attachment: fixed;
 }
 
 a {
-  color: var(--accent);
+  color: var(--sky);
 }
 
 main {
   max-width: 880px;
   margin: 0 auto;
-  padding: 32px 20px 16px;
+  padding: 40px 20px 24px;
   text-align: center;
 }
 
+.wordmark {
+  margin: 0 0 22px;
+}
+
 h1 {
-  margin: 0 0 8px;
-  font-size: 26px;
+  margin: 0;
+  font-family: var(--font-display), sans-serif;
+  font-size: 30px;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--chalk);
+}
+
+.court-rule {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  max-width: 220px;
+  margin: 10px auto 0;
+}
+
+.court-rule span:not(.ball-dot) {
+  flex: 1;
+  height: 2px;
+  background: var(--line-strong);
+}
+
+.ball-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ball);
+  box-shadow: 0 0 8px rgba(211, 246, 90, 0.7);
+  flex-shrink: 0;
 }
 
 .subtitle {
-  color: var(--muted);
-  margin: 0 0 4px;
+  color: var(--mist);
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
 }
 
 .venue-tabs {
   display: flex;
   gap: 8px;
   margin-bottom: 24px;
+  justify-content: center;
 }
 
 .venue-tabs a {
   padding: 8px 14px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: 8px;
   text-decoration: none;
-  color: var(--text);
+  color: var(--chalk);
   background: var(--panel);
+  font-family: var(--font-display), sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 13px;
 }
 
 .venue-tabs a.active {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--ball);
+  color: var(--ball);
 }
 
 table {
   width: 100%;
-  max-width: 320px;
-  margin: 24px auto 0;
+  max-width: 360px;
+  margin: 20px auto 0;
   border-collapse: collapse;
   background: transparent;
-  table-layout: auto;
+  display: block;
+}
+
+tbody {
+  display: block;
+}
+
+tr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+tr:last-child {
+  border-bottom: none;
 }
 
 td {
-  padding: 12px 12px;
+  padding: 0;
   text-align: left;
   font-size: 14px;
   vertical-align: middle;
   white-space: nowrap;
+  display: block;
 }
 
 td:first-child {
+  font-family: var(--font-display), sans-serif;
   font-weight: 600;
-  color: var(--text);
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: var(--chalk);
+  flex-shrink: 0;
 }
 
 td:last-child {
-  width: 1%;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .pill {
   display: inline-block;
-  padding: 2px 10px;
+  padding: 3px 11px;
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
 }
 
 .pill.available {
-  background: rgba(34, 197, 94, 0.15);
-  color: var(--green);
+  background: rgba(51, 193, 122, 0.14);
+  color: var(--turf);
+  border-color: rgba(51, 193, 122, 0.4);
 }
 
 .pill.busy {
-  background: rgba(239, 68, 68, 0.15);
-  color: var(--red);
+  background: rgba(226, 89, 60, 0.14);
+  color: var(--clay);
+  border-color: rgba(226, 89, 60, 0.35);
 }
 
 .courts {
   display: flex;
   flex-wrap: nowrap;
   gap: 6px;
-  justify-content: flex-start;
+  justify-content: flex-end;
 }
 
 .court-chip {
   font-size: 12px;
-  padding: 2px 8px;
+  font-weight: 600;
+  padding: 3px 9px;
   border-radius: 6px;
-  border: 1px solid var(--border);
-  color: var(--muted);
+  border: 1px solid var(--line);
+  color: var(--mist);
   text-decoration: none;
+  background: rgba(233, 241, 245, 0.02);
 }
 
 .court-chip.available {
-  border-color: rgba(34, 197, 94, 0.4);
-  color: var(--green);
+  border-color: rgba(51, 193, 122, 0.45);
+  color: var(--turf);
+  background: rgba(51, 193, 122, 0.08);
 }
 
 a.court-chip.available:hover {
-  background: rgba(34, 197, 94, 0.12);
+  background: rgba(51, 193, 122, 0.18);
+  border-color: var(--turf);
 }
 
 .court-label-short {
@@ -151,11 +247,15 @@ a.court-chip.available:hover {
   }
 
   main {
-    padding: 24px 8px 16px;
+    padding: 28px 20px 20px;
   }
 
-  td {
-    padding: 8px 4px;
+  h1 {
+    font-size: 25px;
+  }
+
+  tr {
+    padding: 9px 2px;
     font-size: 13px;
   }
 
@@ -170,13 +270,13 @@ a.court-chip.available:hover {
 
   .pill {
     padding: 2px 8px;
-    font-size: 11px;
+    font-size: 10px;
   }
 }
 
 @media (max-width: 360px) {
-  td {
-    padding: 6px 2px;
+  tr {
+    padding: 7px 2px;
     font-size: 12px;
   }
 
@@ -187,35 +287,52 @@ a.court-chip.available:hover {
 }
 
 .meta {
-  color: var(--muted);
-  font-size: 13px;
-  margin: 24px 0 0;
+  color: var(--mist);
+  font-size: 12px;
+  margin: 28px 0 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .booking-link {
-  margin: 0;
+  margin: 0 0 4px;
   font-size: 14px;
 }
 
 .booking-link a {
-  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  background: rgba(211, 246, 90, 0.1);
+  border: 1px solid rgba(211, 246, 90, 0.4);
+  color: var(--ball);
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  transition: background 120ms ease, border-color 120ms ease;
 }
 
 .booking-link a:hover {
-  text-decoration: underline;
+  background: rgba(211, 246, 90, 0.2);
+  border-color: var(--ball);
 }
 
 .sessions {
-  margin-top: 40px;
+  margin-top: 44px;
 }
 
 .sessions-heading {
-  margin: 0 0 12px;
+  margin: 0 0 14px;
+  font-family: var(--font-display), sans-serif;
   font-size: 20px;
   font-weight: 600;
-  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--mist);
 }
 
 .calendar-link {
@@ -225,8 +342,10 @@ a.court-chip.available:hover {
 
 .calendar-link-hint {
   margin: 0 0 6px;
-  font-size: 12px;
-  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--mist);
 }
 
 .calendar-link-row {
@@ -237,35 +356,38 @@ a.court-chip.available:hover {
 .calendar-link-row input {
   flex: 1;
   min-width: 0;
-  padding: 8px 10px;
+  padding: 9px 11px;
   border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--panel);
-  color: var(--text);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--chalk);
   font-size: 12px;
   font-family: inherit;
 }
 
 .calendar-link-row input:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--ball);
 }
 
 .calendar-link-row button {
   flex-shrink: 0;
-  padding: 8px 14px;
+  padding: 9px 16px;
   border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--panel);
-  color: var(--accent);
+  border: 1px solid var(--ball);
+  background: var(--ball);
+  color: var(--ball-ink);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
   font-family: inherit;
   cursor: pointer;
+  transition: filter 120ms ease;
 }
 
 .calendar-link-row button:hover {
-  border-color: var(--accent);
+  filter: brightness(1.08);
 }
 
 .session-cards {
@@ -277,16 +399,39 @@ a.court-chip.available:hover {
 }
 
 .session-card {
-  background: var(--panel);
-  border: 1px solid var(--border);
+  position: relative;
+  background: transparent;
+  border: 1px solid var(--line);
   border-radius: 12px;
   overflow: hidden;
-  transition: border-color 120ms ease, background 120ms ease;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.session-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: transparent;
+  transition: background 120ms ease;
 }
 
 .session-card:hover,
 .session-card.expanded {
-  border-color: rgba(59, 130, 246, 0.4);
+  border-color: var(--line-strong);
+}
+
+.session-card:hover::before,
+.session-card.expanded::before {
+  background: var(--ball);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .session-card:hover {
+    transform: translateY(-1px);
+  }
 }
 
 .session-card-header {
@@ -294,18 +439,18 @@ a.court-chip.available:hover {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 14px;
+  padding: 13px 16px 13px 18px;
   cursor: pointer;
   text-align: left;
 }
 
 .session-card-header:focus-visible {
   outline: none;
-  background: rgba(59, 130, 246, 0.06);
+  background: rgba(211, 246, 90, 0.06);
 }
 
 .session-card-header:hover {
-  background: rgba(59, 130, 246, 0.04);
+  background: rgba(233, 241, 245, 0.03);
 }
 
 .session-card-primary {
@@ -316,14 +461,17 @@ a.court-chip.available:hover {
 }
 
 .session-card-date {
+  font-family: var(--font-display), sans-serif;
   font-size: 14px;
   font-weight: 600;
-  color: var(--text);
+  letter-spacing: 0.02em;
+  color: var(--chalk);
 }
 
 .session-card-time {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--mist);
+  font-variant-numeric: tabular-nums;
 }
 
 .session-card-meta {
@@ -335,9 +483,9 @@ a.court-chip.available:hover {
 
 .session-card-court {
   font-size: 13px;
-  color: var(--accent);
+  color: var(--sky);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .session-card-court:hover {
@@ -345,9 +493,9 @@ a.court-chip.available:hover {
 }
 
 .session-card-body {
-  padding: 12px 14px 14px;
-  border-top: 1px solid var(--border);
-  background: rgba(20, 24, 29, 0.6);
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--line);
+  background: transparent;
 }
 
 .players-pill {
@@ -357,27 +505,28 @@ a.court-chip.available:hover {
   padding: 2px 10px;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 600;
-  border: 1px solid var(--border);
-  background: var(--panel);
-  color: var(--text);
+  font-weight: 700;
+  border: 1px solid var(--line);
+  background: var(--panel-raised);
+  color: var(--chalk);
   font-family: inherit;
+  font-variant-numeric: tabular-nums;
 }
 
 .players-pill.full {
-  background: rgba(34, 197, 94, 0.15);
-  color: var(--green);
-  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(51, 193, 122, 0.16);
+  color: var(--turf);
+  border-color: rgba(51, 193, 122, 0.4);
 }
 
 .players-pill.partial {
-  background: rgba(59, 130, 246, 0.12);
-  color: var(--accent);
-  border-color: rgba(59, 130, 246, 0.4);
+  background: rgba(211, 246, 90, 0.12);
+  color: var(--ball);
+  border-color: rgba(211, 246, 90, 0.4);
 }
 
 .players-pill.empty {
-  color: var(--muted);
+  color: var(--mist);
 }
 
 .player-picker-caret {
@@ -417,7 +566,7 @@ a.court-chip.available:hover {
 }
 
 .player-picker-list input[type="checkbox"] {
-  accent-color: var(--accent);
+  accent-color: var(--ball);
   cursor: pointer;
 }
 
@@ -429,22 +578,22 @@ a.court-chip.available:hover {
   margin-top: 8px;
   font-size: 11px;
   min-height: 14px;
-  color: var(--muted);
+  color: var(--mist);
   text-align: center;
 }
 
 .player-picker-status.status-saved {
-  color: var(--green);
+  color: var(--turf);
 }
 
 .player-picker-status.status-error {
-  color: var(--red);
+  color: var(--clay);
 }
 
 .error {
-  color: var(--red);
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--clay);
+  background: rgba(226, 89, 60, 0.08);
+  border: 1px solid rgba(226, 89, 60, 0.3);
   padding: 12px 16px;
   border-radius: 8px;
 }
