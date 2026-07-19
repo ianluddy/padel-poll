@@ -43,6 +43,11 @@ type KeyedOpening = SlotOpening & { key: string };
 const NOTIFY_WINDOW_START_MIN = 8 * 60;
 const NOTIFY_WINDOW_END_MIN = 21 * 60 + 30;
 
+// Temporarily off during summer, when slots are plentiful — set back to
+// unset (or "true") once slots get scarce again in winter.
+const OPENING_NOTIFICATIONS_ENABLED =
+  process.env.OPENING_NOTIFICATIONS_ENABLED !== "false";
+
 const REMINDER_WINDOW_MIN_HOURS = 24;
 const REMINDER_WINDOW_MAX_HOURS = 30;
 
@@ -277,7 +282,11 @@ export async function GET(request: Request) {
           !previousOpen.has(o.key) &&
           !bookedDates.has(o.date),
       );
-      if (reopened.length > 0) {
+      if (reopened.length > 0 && !OPENING_NOTIFICATIONS_ENABLED) {
+        const reason = "opening notifications disabled (OPENING_NOTIFICATIONS_ENABLED=false)";
+        openingNotification = { sent: false, count: reopened.length, reason };
+        openingWhatsApp = { sent: false, count: reopened.length, reason };
+      } else if (reopened.length > 0) {
         const grouped = new Map<string, SlotOpening>();
         for (const r of reopened) {
           const groupKey = `${r.venue}|${r.date}|${r.hour}`;
