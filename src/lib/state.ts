@@ -6,6 +6,7 @@ const SNAPSHOT_KEY = "padel:lastSnapshot";
 const AVAILABILITY_KEY_PREFIX = "padel:availability:";
 const USER_SESSIONS_KEY = "padel:userSessions";
 const REMINDED_SESSIONS_KEY = "padel:remindedSessions";
+const LAST_FAILURE_NOTIFIED_KEY = "padel:lastFailureNotifiedAt";
 const SESSION_PLAYERS_KEY_PREFIX = "padel:sessionPlayers:";
 const SESSION_PLAYERS_TTL_SECONDS = 60 * 24 * 60 * 60;
 
@@ -156,6 +157,18 @@ export async function saveSessionPlayers(
     ex: SESSION_PLAYERS_TTL_SECONDS,
   });
   return payload;
+}
+
+export async function loadLastFailureNotifiedAt(): Promise<string | null> {
+  const r = getRedis();
+  if (!r) return null;
+  return (await r.get<string>(LAST_FAILURE_NOTIFIED_KEY)) ?? null;
+}
+
+export async function saveLastFailureNotifiedAt(iso: string): Promise<void> {
+  const r = getRedis();
+  if (!r) return;
+  await r.set(LAST_FAILURE_NOTIFIED_KEY, iso);
 }
 
 export function isStateConfigured(): boolean {

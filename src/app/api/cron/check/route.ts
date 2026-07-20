@@ -15,6 +15,8 @@ import {
   loadRemindedSessions,
   saveRemindedSessions,
   loadSessionPlayers,
+  loadLastFailureNotifiedAt,
+  saveLastFailureNotifiedAt,
 } from "@/lib/state";
 import {
   sendOpeningEmail,
@@ -50,6 +52,8 @@ const OPENING_NOTIFICATIONS_ENABLED =
 
 const REMINDER_WINDOW_MIN_HOURS = 24;
 const REMINDER_WINDOW_MAX_HOURS = 30;
+
+const FAILURE_EMAIL_COOLDOWN_HOURS = 24;
 
 function isWithinNotifyWindow(now: Date): boolean {
   const minutesGmt1 =
@@ -254,7 +258,21 @@ export async function GET(request: Request) {
   let failureNotification: { sent: boolean; reason?: string } = { sent: false };
 
   if (failures.length > 0) {
-    failureNotification = await settle(sendFailureEmail(failures));
+    const lastNotified = await loadLastFailureNotifiedAt();
+    const sinceLastNotifyMs = lastNotified
+      ? Date.now() - new Date(lastNotified).getTime()
+      : Infinity;
+    if (sinceLastNotifyMs >= FAILURE_EMAIL_COOLDOWN_HOURS * 3_600_000) {
+      failureNotification = await settle(sendFailureEmail(failures));
+      if (failureNotification.sent) {
+        await saveLastFailureNotifiedAt(new Date().toISOString());
+      }
+    } else {
+      failureNotification = {
+        sent: false,
+        reason: `throttled: last failure email sent ${lastNotified}`,
+      };
+    }
     openingNotification = {
       sent: false,
       count: 0,
