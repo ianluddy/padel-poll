@@ -272,6 +272,11 @@ export async function GET(request: Request) {
       const reason = "first run; seeding state";
       openingNotification = { sent: false, count: 0, reason };
       openingWhatsApp = { sent: false, count: 0, reason };
+    } else if (!OPENING_NOTIFICATIONS_ENABLED) {
+      const reason =
+        "reopened-slot check disabled (OPENING_NOTIFICATIONS_ENABLED=false)";
+      openingNotification = { sent: false, count: 0, reason };
+      openingWhatsApp = { sent: false, count: 0, reason };
     } else {
       const previousSeen = new Set(previous.seen);
       const previousOpen = new Set(previous.open);
@@ -282,11 +287,7 @@ export async function GET(request: Request) {
           !previousOpen.has(o.key) &&
           !bookedDates.has(o.date),
       );
-      if (reopened.length > 0 && !OPENING_NOTIFICATIONS_ENABLED) {
-        const reason = "opening notifications disabled (OPENING_NOTIFICATIONS_ENABLED=false)";
-        openingNotification = { sent: false, count: reopened.length, reason };
-        openingWhatsApp = { sent: false, count: reopened.length, reason };
-      } else if (reopened.length > 0) {
+      if (reopened.length > 0) {
         const grouped = new Map<string, SlotOpening>();
         for (const r of reopened) {
           const groupKey = `${r.venue}|${r.date}|${r.hour}`;
