@@ -18,12 +18,14 @@ Polls Project Padel Galway for available 8pm slots Mon–Thu for the next 21 day
 
 - `/` — server-rendered page.
 - `/api/availability?hour=20` — JSON.
-- `/api/cron/check` — invoked by Vercel cron. Logs availability summary; protected by `CRON_SECRET` if set.
+- `/api/cron/check` — the scheduled check (currently not scheduled — see below). Logs availability summary; protected by `CRON_SECRET` if set.
 - `/api/calendar` — ICS feed of currently upcoming sessions, for subscribing from Google Calendar. Protected by `CALENDAR_FEED_TOKEN` (as a `?token=` query param) if set.
 
 ## Cron + email notifications
 
-`vercel.json` runs `/api/cron/check` every 30 minutes. The handler diffs current availability against the last snapshot in Redis and sends a Resend email listing only **newly opened** slots.
+**Currently disabled** — `vercel.json` has no cron schedule, so `/api/cron/check` only runs if hit manually (or via an external scheduler). It was turned off after Project Padel changed their booking page URL, breaking the availability check and causing repeated failure emails; re-add a `crons` entry to `vercel.json` (see git history) once that's sorted and you want checks running again.
+
+When scheduled, the handler diffs current availability against the last snapshot in Redis and sends a Resend email listing only **newly opened** slots, alongside session booked/cancelled alerts, cancellation reminders, and the weekly Sunday summary.
 
 Required env vars (see `.env.example`):
 
